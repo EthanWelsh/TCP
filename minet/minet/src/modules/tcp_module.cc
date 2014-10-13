@@ -25,47 +25,47 @@
 
 using namespace std;
 
-struct TCPState {
+struct TCPState
+{
     // need to write this
-    std::ostream & Print(std::ostream &os) const { 
-	os << "TCPState()" ; 
-	return os;
+    std::ostream &Print(std::ostream &os) const
+    {
+        os << "TCPState()";
+        return os;
     }
 };
 
 
-int main(int argc, char * argv[]) {
+int main(int argc, char *argv[])
+{
     MinetHandle mux;
     MinetHandle sock;
-    
+
     ConnectionList<TCPState> clist;
 
     MinetInit(MINET_TCP_MODULE);
 
-    mux = MinetIsModuleInConfig(MINET_IP_MUX) ?  
-	MinetConnect(MINET_IP_MUX) : 
-	MINET_NOHANDLE;
-    
-    sock = MinetIsModuleInConfig(MINET_SOCK_MODULE) ? 
-	MinetAccept(MINET_SOCK_MODULE) : 
-	MINET_NOHANDLE;
+    mux = MinetIsModuleInConfig(MINET_IP_MUX) ? MinetConnect(MINET_IP_MUX) : MINET_NOHANDLE;
 
-    if ( (mux == MINET_NOHANDLE) && 
-	 (MinetIsModuleInConfig(MINET_IP_MUX)) ) {
+    sock = MinetIsModuleInConfig(MINET_SOCK_MODULE) ? MinetAccept(MINET_SOCK_MODULE) : MINET_NOHANDLE;
 
-	MinetSendToMonitor(MinetMonitoringEvent("Can't connect to ip_mux"));
+    if ((mux == MINET_NOHANDLE) && (MinetIsModuleInConfig(MINET_IP_MUX)))
+    {
 
-	return -1;
+        MinetSendToMonitor(MinetMonitoringEvent("Can't connect to ip_mux"));
+
+        return -1;
     }
 
-    if ( (sock == MINET_NOHANDLE) && 
-	 (MinetIsModuleInConfig(MINET_SOCK_MODULE)) ) {
+    if ((sock == MINET_NOHANDLE) &&
+            (MinetIsModuleInConfig(MINET_SOCK_MODULE)))
+    {
 
-	MinetSendToMonitor(MinetMonitoringEvent("Can't accept from sock_module"));
+        MinetSendToMonitor(MinetMonitoringEvent("Can't accept from sock_module"));
 
-	return -1;
+        return -1;
     }
-    
+
     cerr << "tcp_module STUB VERSION handling tcp traffic.......\n";
 
     MinetSendToMonitor(MinetMonitoringEvent("tcp_module STUB VERSION handling tcp traffic........"));
@@ -73,23 +73,28 @@ int main(int argc, char * argv[]) {
     MinetEvent event;
     double timeout = 1;
 
-    while (MinetGetNextEvent(event, timeout) == 0) {
+    while (MinetGetNextEvent(event, timeout) == 0)
+    {
 
-	if ((event.eventtype == MinetEvent::Dataflow) && 
-	    (event.direction == MinetEvent::IN)) {
-	
-	    if (event.handle == mux) {
-		// ip packet has arrived!
-	    }
+        if ((event.eventtype == MinetEvent::Dataflow) &&
+                (event.direction == MinetEvent::IN))
+        {
 
-	    if (event.handle == sock) {
-		// socket request or response has arrived
-	    }
-	}
+            if (event.handle == mux)
+            {
+                // ip packet has arrived!
+            }
 
-	if (event.eventtype == MinetEvent::Timeout) {
-	    // timeout ! probably need to resend some packets
-	}
+            if (event.handle == sock)
+            {
+                // socket request or response has arrived
+            }
+        }
+
+        if (event.eventtype == MinetEvent::Timeout)
+        {
+            // timeout ! probably need to resend some packets
+        }
 
     }
 
