@@ -1,0 +1,24 @@
+libminet-objs += arp.o \
+	 	 bitsource.o \
+		 buffer.o \
+		 config.o \
+		 constate.o \
+		 debug.o \
+		 error.o \
+		 ethernet.o \
+		 headertrailer.o \
+		 icmp.o \
+		 ip.o \
+		 Minet.o \
+		 Monitor.o \
+		 packet.o \
+		 packet_queue.o \
+		 raw_ethernet_packet_buffer.o \
+		 raw_ethernet_packet.o \
+		 route.o \
+		 sockint.o \
+		 sock_mod_structs.o \
+		 tcp.o \
+		 tcpstate.o \
+		 udp.o \
+		 util.o

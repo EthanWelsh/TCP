@@ -1,0 +1,11 @@
+all: libminet_socket.a
+
+libminet_socket.a : minet_socket.o
+	ar ruv libminet_socket.a minet_socket.o
+
+minet_socket.o: minet_socket.cc minet_socket.h
+	g++ -g -c minet_socket.cc
+
+clean:
+	rm -f libminet_socket.a minet_socket.o
+

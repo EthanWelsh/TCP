@@ -1,0 +1,378 @@
+
+================
+June 21 (Monday)
+================
+
+Started.  Spent the day reading about / experimenting with Git, VMWare, and VNC.  Also, beginning to familiarize myself with the VLab.
+
+No office key yet.  Worked mostly from Wilkinson, and also from TLAB.
+
+Resources:
+http://progit.org/book/
+http://pdinda.org/remoteunix/
+http://pdinda.org/vlab/
+
+Roadblocks / Next steps / Brain dump:
+
+1. Get the latest version of Minet (patched for gcc3.2) up and running to use as a reference:
+Currently, no readily-available environment (TLab, Wilkinson) is able to compile/run the latest version of Minet successfully.  Based on what I read online, downgrading the compiler is not something that is done nearly as easily as upgrading (especially from one major release to another, older one), and the attitude seems to be that you should fix the code instead of downgrading the compiler, which is what I will have to do anyway.  Or perhaps I could install an older release of Ubuntu (which has some version of gcc 3) and finetune from there?
+
+2. Continue playing around with VLab:
+Want to become familiar with how to create new VMs, remove them, etc.
+
+
+===================
+June 23 (Wednesday)
+===================
+
+Decided not to bother with getting Minet to run at the moment.  I started to merge my earlier updates in hopes of getting it to work with gcc4.
+
+My earlier updates were messy and rushed and did some rather distasteful things.  This time, I'm trying to adhere to better coding practices.
+
+No office key yet.  Working from my own computer. (4 hours)
+
+Next steps:
+
+1. Continue patching for gcc4.
+2. Continue playing around with VLab.
+3. Think about introducing a more formal bug/issue tracking scheme.
+
+
+==================
+June 24 (Thursday)
+==================
+
+Did some organizational work: created this file, as well as TODO, BUGS, questions.txt, and list-of-things-serg-did-that-he-and-others-might-regret-later-on.txt. These aren't permanent additions to the project (although BUGS and TODO might stick around for some time); they're just aids for myself for the duration of this summer.
+
+Imported project into Code::Blocks IDE, then continued with updating Minet for gcc4.
+
+Also looked into some bug/issue tracking systems that are out there.  After playing around, I concluded that a simple plaintext BUGS file should suffice for now.  I don't want to make things more complicated than they need to be.  If the need does arise, it looks like "roundup" (http://www.roundup-tracker.org/) is a pretty good, lightweight, and open source bug tracker that is readily available in the Ubuntu repositories.
+
+
+================
+June 25 (Friday)
+================
+
+Finished up making changes to Minet to get it to compile using gcc 4.  Although it compiles, it doesn't run correctly (all modules open with blank windows).  I will leave this issue for tomorrow.
+
+Note: It also may be worth checking to see if I broke compatibility with TLAB machines...
+
+
+==================
+June 26 (Saturday)
+==================
+
+Spent time trying to figure out why it's not running correctly.  Looking to see if it's possible to change the way the modules are loaded so that it's possible to use the Code::Blocks debugger to visually step through the code.  Need to research a bit more about exception handling.
+
+All modules were stuck on open() when trying to open the fifos, so I built a simple app that mimics the way Minet opens fifos for reading and writing.  Unfortunately, this didn't help with figuring out the cause.
+
+
+=================
+July 1 (Thursday)
+=================
+
+Found the reason why everything got stuck at open().  The first fifo that the monitor tries to open for reading is the device driver (fifos/ether2mon), but this currently isn't being executed at all (TODO: perhaps include some helpful output as to what exactly the monitor is doing, what it's waiting for? Currently this doesn't happen even at debug level 10, and there's pretty much no hint as to what's going on -- just all windows are sitting there blank).
+
+Found out that there are in fact 2 drivers, and I am guessing that the second one is preferred (comment at the top reads: "Simpler device driver for Minet. No signals are used here.").
+
+After some minor fixes to get it to compile, I discovered that you need to be root in order to run it (Q: will this be an issue for adoption? Would other CS depts rather not use Minet if it requires giving root privileges for students?).
+
+After that, ran into another prob (pcap_lookupnet() returns an error: "Can't get net and mask for eth0: eth0: no IPv4 address assigned". I might be wrong, but I think the real problem is that the wrong ethernet device is selected: eth1 is the one that should be used. Will need a fix later! Or just ignore? Because ignoring the prob seems to work as well...). I commented out the exit() function (effectively ignoring the error.  Look for comment marked "TEMP TEMP TEMP" inside device_driver2.cc and find a better solution), after which I was able to successfully start up Minet for the first time (yay!).
+
+
+===============
+July 2 (Friday)
+===============
+
+Started doing some clean up of the code to ready it for a git commit.  Still more to do.
+
+===============
+July 5 (Monday)
+===============
+
+Met with prof.  Reorganized my notes & to do list.  Read up on device drivers.
+
+
+================
+July 6 (Tuesday)
+================
+
+Moved into office, unpacked / set up the computer, installed Ubuntu. No networking yet (emailed root to get set up - waiting for reply).
+
+==================
+July 7 (Wednesday)
+==================
+
+Finished setting up the office.  Got networking, installed all the dev tools, & tested compiling/running Minet locally.
+
+Researched documentation tools. Decided it would be a good idea to start writing up some documentation for Minet as early as possible & work on it throughout the summer.  Here are some thoughts:
+
+I see three possible target audiences for documentation: students, teachers/IT, and Minet developers.  There may be a good deal of overlap between the three groups, but the concerns for the three groups are (in my opinion) different enough to warrant splitting up the documentation into three parts:
+
+For students: a gentle introduction to Minet, the GUI tools that are available, programming/debugging techniques.   Include a highly visible leeway into the doxygen-generated documentation (call this last one the "Minet Reference").  When I was in 340, I would have also appreciated some tips on how to test that we got the environment up and running correctly -- include tips on how to use nc, as well as tcp_client and tcp_server, to test that everything is set up and running (mention what you're supposed to see where - what will pop up in the monitor, "beginning to echo text", etc, etc). (If wireshark is available, a brief guide on how that helps & how to use it).
+
+For teachers/IT: a technical guide on how to set up Minet in your CS department so that students can use it (including the many options that are available: physical lab environment vs distributing Minet inside VMs). Perhaps include some suggestions for how to use Minet in the curriculum.
+
+For Minet developers: (last priority - there's not much that can go here YET. A simple README-developers file will suffice for now). Describe how to set up a good testing environment (e.g., using the VLAB, or my approach of running two instances of Ubuntu in VirtualBox [see tomorrow]), especially focusing on how to isolate Minet's network traffic (e.g., by using Host-Only networking).  Also, for starters, how to compile Minet, as well as make sense of the makefile, the setup script, etc (but wait on this, since there's a good chance all of this will change).  Document which tools are used for which aspects of the project (e.g., bug tracking, documentation, etc). 
+
+
+=================
+July 8 (Thursday)
+=================
+
+Worked on setting up a testing environment.  At this moment, this consists of two Ubuntu virtual machines running under VirtualBox using Host-Only networking.  I tested the machines using tcp_client and tcp_server running on top of the Minet stack and it appeared to work. [UPDATE: See July 20, tcp_module is crashing, even though I'm pretty sure I'm doing the same thing!]
+
+I had some trouble with using the VLAB.  I couldn't find how to install the "VMWare Server Console" tool for Ubuntu - it appears that it should have come installed with VMWare Server, but either it didn't, or it was renamed.  I'll look into this a little more later on (maybe try installing VMWare in Windows? maybe try TLab/WilkLab?). In the end, though, the local VirtualBox testing environment that I set up might suffice - I'll need to ask what specific advantages VLAB would actually allow me.
+
+TODO: write down address of custom vmware installer script!! before you forget it
+
+
+===============
+July 9 (Friday)
+===============
+
+Largely spent the day configuring the testing environment.  Created some helper scripts for configuring the correct network settings within the VM, as well as syncing Minet's files from the host OS. Made some (temporary!) modifications to setup.sh to faciliate this (e.g., there's an ugly hack to automatically get the IP address for MINET_IPADDR so that I don't have to change these by hand every time I want to test Minet).
+
+
+===================
+July 14 (Wednesday)
+===================
+
+In preparation for repairing socket lib, started researching what it does & how.  Decided it would be helpful to start documenting it.  Read some tutorials on doxygen & started the documentation.
+
+Notes:
+- project directory now contains a file called Doxygen that has config options for how doxygen should generate documentation
+- I set it to output the documentation to doc/doxygen.  The idea right now is that the top-level "doc" directory should be the students' guide to Minet. The doxygen docs should be a level below that.  The students' guide will link to the doxygen docs.
+- TODO: Document which settings for Doxyfile should be changed from the default in the for-developers section.
+
+Also did a commit before starting work for the day (still need to do a push!).
+
+
+==================
+July 15 (Thursday)
+==================
+
+
+* Continued documentation for sock_module
+	- learning doxygen
+
+* Considered revising / finding an alternative for preprocessor metaprogramming in Minet.h and Minet.cc (look at _DECL and _IMPL macros for MinetSend and MinetReceive)
+	- error prone & hard to read/modify
+	- IDEs can't see these declarations/definitions
+	- Neither can doxygen.
+	- there has to be a better alternative!
+	- what's stopping me: serialization/deserialization framework. See next item
+
+* Serialization/deserialization framework could use some improvement - didn't do anything, but read up on the topics
+	- this is what's currently stopping me from being able to get rid of the preprocessor metaprogramming stuff...
+		- Currently, they all define Serialize/Unserialize
+		- Perhaps we could have an abstract base class called Serializable with these functions in it
+		- Then every Minet data structure than can perform serialization can inherit from it (MinetEvent, RawEthernetPacket, Packet, ARPRequestResponse, etc)
+		- This would make solving the original problem a bit easier
+			- Either... MinetSend, MinetReceive, MinetMonitorSend, and MinetMonitorReceive could all be template functions
+			- Or... accept a Serializable object as a parameter (instead of the 6 different specialized types)
+	- Other potential benefits for improving the serialization framework:
+		- first of all, store data in human-readable format instead of binary (binary is what is currently the case)
+		- serialization/deserialization could also be the means by which we could re-init crashed modules (an idea we had earlier - see meeting notes from July 5 in "meetings" dir)
+	- good resources to use if you decide to improve the serialization framework:
+		- C++ Faq Lite intro to the topic (must read! but not a lot of detail)
+			http://www.parashift.com/c++-faq-lite/serialization.html#faq-36.7
+		- Chapter from a book (C++ in Action) - great read, walks you through how to actually implement serialization/deserialization using STL, but I think it's ignoring some of the tricky cases that the FAQ discusses (see 36.11) (and I might be wrong on this since I haven't fully thought this through yet, but some of these cases can potentially apply to Minet, so can't ignore!)
+			http://www.relisoft.com/book/tech/7serial.html
+
+* Uh oh... minet_socket() currently returns -1 without setting errno if fifo is missing
+	 - traverse minet_socket() [minet_socket.cc] to MinetSend() [Minet.cc] to MinetMonitorSend() [just above]. if(fifo==MyFifos.end()) return -1, but minet_errno is not set.
+* More about this errno stuff: The way minet_errno and minet_error() are currently implemented makes it nearly impossible to give the user any meaningful feedback if there's an error during initialization in minet_init().
+	- For example: minet_init() in minet_socket.cc currently returns socket_type, which is 1 and 2 for kernel/user (both success conditions), and 0 for UNINIT_SOCKS (which is clearly an error condition).
+		- The rest of Minet seems to use the convention that a return code >= 0 signifies success, while a return code that is < 0 signifies an error condition
+		- That means that returning UNINIT_SOCKS (which is 0) would appear to the user as a success condition! Oops! [Lame fix: just changed definition of UNINIT_SOCKS to -1]
+		- Furthermore, minet_init currently does NOT set minet_errno.
+		- In a way it makes sense because minet_error returns errno for kernel socks, or minet_errno for minet socks. But if it's neither, it's supposedly not clear what we should use
+			+ I think it makes sense to just use minet_errno in this case
+			+ That way, we can also report initialization errors that are further down the line (e.g., monitor couldn't connect to fifo for sock module)
+				- although error codes are a pretty crappy way to report errors to the user. Even exceptions would be better... (but exceptions would impose a lot on the students, especially if they're not familiar with them, and would also break away from the apparent parallelism with Berkeley socket conventions which Minet is currently mimicing)
+				- Ideally, we would like to provide a detailed, meaningful error message ("Could not connect to monitor. Check that the fifo exists" or something), instead of an error code EFILENOTFOUND.
+			+ But then the problem becomes how we're supposed to define error numbers so that they don't overlap between all the different modules... or is this not a problem?
+				- It *is* a problem... check out the line minet_errno = slrr.error;
+				- This uses error numbers that are defined in SockLibRequestResponse (in sockint.h, starting at #define EOK)
+				- But on the other hand, sockint.h is currently the only file that defines error codes, so maybe it's ok?
+				- Might be problematic in the future...
+				- Maybe use error.h and error.cc to define all error codes for all modules -- this would ensure that error codes don't overlap, but would break encapsulation
+*** DECIDED SOLUTION for now: Internal errors should be logged/printed if MINET_DEBUGLEVEL is > 0. Documentation should make it clear that changing MINET_DEBUGLEVEL is an option that is available to them. In the meantime, Minet developers should strive to provide more meaningful debug messages all throughout Minet using DEBUGPRINTF in any place where errors may occur ***
+
+Additional things to consider:
+	- ability to change where debug messages get sent (stdout/stderr, log, another separate xterm, monitor [with red highlighting?])
+		+ configurable in setup.sh
+	- ability to distinguish between pure debug messages, warnings, and errors when calling DEBUGPRINTF()
+		+ then errors and warnings could be highlighted
+	- ability to track where the DEBUGPRINTF() call came from (file & line number)
+		+ I know this is possible! ... somehow ...
+		+ UPDATE: __FILE__ and __LINE__ macros (TO DO: will it work on other platforms?)
+	- ability to debug only certain modules
+		+ separate DEBUGLEVEL var for every module?
+			- No
+		+ another (new) variable called MINET_DEBUGMODULES or something? This would contain the list of modules you are debugging. MINET_DEBUGLEVEL would not apply to modules outside of this list
+			- if you set MINET_DEBUGLEVEL but forget to include the module in MINET_DEBUGMODULES, you'll still get no output and potentially no way to know what's wrong
+			- potentially confusing... 
+			- sounds very close to what the monitor currently does. Speaking of which... what if the monitor was a bit more sophisticated so that you could ... (see next item)
+		+ rely on the GUI to be able to filter debug messages based on where they came from?
+			- would probably require storing additional information / having to create a new data type for debug messages...
+			- again, this is what the monitor does. It works ok, but there's significantly more effort required to create a message.
+				+ the simplicity of a printf or a cout statement is kind of appealing
+
+
+
+================
+July 16 (Friday)
+================
+
+Continued with the documentation. Wrote a TON more today, mostly inside minet_socket.cc.
+
+Also, writing detailed documentation is forcing me to scrutinize the code.  At first glance, it looked like most of the code (beside the broken select stuff) was solid, but after attempting to write the docs, I'm noticing some strange things.  I was on a roll with the documentation, so I decided to come back to fixing the code later - for now, I just noted these things inside @todo and @bug sections inside the doc comments (doxygen creates a fully cross-referenced to-do list at doc/doxygen/html/todo.html and a bug list at doc/doxygen/html/bug.html from these comments).
+
+Don't forget to:
+* Use more DEBUGPRINTF() statements throughout sock lib (never fail silently)
+* Adding "see also" sections to cross reference all of the system-level network calls with each other
+* Document which settings for Doxyfile should be changed from the default in the for-developers section.
+* You're roughly on line 562 of minet_socket.cc, finishing up the documentation. There was a blurb of copy pasta that you decided to fix but haven't yet propogated below this line (first two paragraphs of every system-level-like call, after the @brief section). You were going to write a more detailed @remarks section for minet_accept() that would mirror the @remarks section for minet_bind() (but more apropos for *reading* the sockaddr_in structure instead of *writing* it).
+
+
+================
+July 19 (Monday)
+================
+
+Continued on with documentation, still inside minet_socket.cc.  Almost there.  Got to minet_sendto(), and the minet_select() stuff which need fixing is coming up next.
+
+Here's an idea I had earlier.  Today's entry looked kind of empty (I swear I did work! Just not much to say about it today), so I decided to write it here.
+
+One of my not-so-fond memories of working on the TCP project was the lack of any clear-defined "milestones" in the project, as well not knowing what the criteria was for grading it.  We were basically given a huge task (implement TCP), told to use unfamiliar tools (Minet), and a deadline (ok, can't complain about this one - we were given an extension).  This made the project seem a little overwhelming.  And at the end, for turning the project in, we basically sent the TA our code (tcp_module.cc) and trusted that he would look through it and figure out from our crammed and garbled output what parts worked and what parts didn't.  (I wouldn't fancy that job.)  We got feedback at the end of the quarter, which consisted of a score for the project and nothing else -- no explanation, just a number.
+
+So here's what would be neat: something similar to the projects we had in 213 where there was a cute little web page with pictures of firecrackers, and more importantly a clear set of milestones for every project.  These were automatically updated as soon as you completed some well-defined task.  This definitely made it a little more fun, and more importantly, it made the big projects seem manageable.  I think Minet could benefit immensely from something similar.  As an added benefit, this would make grading a ton easier, and students would actually have feedback for their scores (even if it's automated).
+
+
+=================
+July 20 (Tuesday)
+=================
+
+Paused with the documentation, even though I'm not quite finished there.  Discovered & investigated a problem with the tcp_module crashing.  Wrote some additional debugging code (including a C++ version of DEBUGPRINTF which allows objects to be printed on the stream: see documentation for DebugStream in debug.h).  Couldn't find cause... decided it would be worthwhile to get the java gui up and running again.  Note: javac reports that xerces.jar appears to be corrupted - just download a new version from http://archive.apache.org/dist/xml/xerces-j and replace it, seems to work, at least for compiling).  Also, need -fPIC compiler option in CXX flags for Makefile in minet-development, as well as a -std=c++0x compiler option for MinetNative.o in Makefile for minet-java-gui (and a few other slight modifications, like using namespace std).  Javagui compiles and runs but doesn't display anything.  Attempted to debug, but I saw this would take a while.  Wanted to see what kind of output the java gui produced when it was operational to decide whether it would be worth investing the time in fixing it, but I couldn't get a working version up and running anywhere.  In TLAB, note the following: running "java -jar mmonitor.jar" won't work ("Warning: -jar not understood. Ignoring.", followed by: Exception in thread "main" java.lang.NoClassDefFoundError: mmonitor.jar). You have to use "gij" instead of "java", so the command becomes "gij -jar mmonitor.jar". Unfortunately, this also fails, but at least it (apparently) manages to find the right class.
+
+If you attempt to run the java gui by itself (without the Minet stack, using "gij -jar mmonitor.jar"):
+
+Exception in thread "main" java.lang.NullPointerException
+   at java.lang.Object.getClass() (/usr/lib/libgcj.so.5.0.0)
+   at MinetDataDisplay.createComponents() (Unknown Source)
+   at MinetDataDisplay.MinetDataDisplay() (Unknown Source)
+   at MinetDataFrame.MinetDataFrame(java.lang.String) (Unknown Source)
+   at MinetDataFrame.MinetDataFrame(java.lang.String, MinetEventSource) (Unknown Source)
+   at MinetGui.createComponents() (Unknown Source)
+   at MinetGui.MinetGui(MinetConfiguration[]) (Unknown Source)
+   at MinetGui.MinetGui() (Unknown Source)
+   at gnu.gcj.runtime.FirstThread.call_main() (/usr/lib/libgcj.so.5.0.0)
+   at gnu.gcj.runtime.FirstThread.run() (/usr/lib/libgcj.so.5.0.0)
+   at _Jv_ThreadRun(java.lang.Thread) (/usr/lib/libgcj.so.5.0.0)
+   at _Jv_RunMain(java.lang.Class, byte const, int, byte const, boolean) (/usr/lib/libgcj.so.5.0.0)
+   at __libc_start_main (/lib/tls/libc-2.3.4.so)
+
+
+If you attempt to run the java gui the proper way (along with the rest of Minet, by editing setup.sh to use MINET_MONITORTYPE=javagui, and by editing monitor.sh to use "gij" instead of "java"), you get a different error:
+
+Exception in thread "main" java.lang.NullPointerException
+   at java.awt.geom.Rectangle2D.union(java.awt.geom.Rectangle2D, java.awt.geom.Rectangle2D, java.awt.geom.Rectangle2D) (/usr/lib/libgcj.so.5.0.0)
+   at java.awt.Rectangle.union(java.awt.Rectangle) (/usr/lib/libgcj.so.5.0.0)
+   at javax.swing.RepaintManager.addDirtyRegion(javax.swing.JComponent, int, int, int, int) (/usr/lib/libgcj.so.5.0.0)
+   at javax.swing.JComponent.repaint(long, int, int, int, int) (/usr/lib/libgcj.so.5.0.0)
+   at java.awt.Component.repaint() (/usr/lib/libgcj.so.5.0.0)
+   at javax.swing.JComponent.setOpaque(boolean) (/usr/lib/libgcj.so.5.0.0)
+   at javax.swing.JRootPane.createGlassPane() (/usr/lib/libgcj.so.5.0.0)
+   at javax.swing.JRootPane.getGlassPane() (/usr/lib/libgcj.so.5.0.0)
+   at javax.swing.JRootPane.JRootPane() (/usr/lib/libgcj.so.5.0.0)
+   at javax.swing.JFrame.createRootPane() (/usr/lib/libgcj.so.5.0.0)
+   at javax.swing.JFrame.getRootPane() (/usr/lib/libgcj.so.5.0.0)
+   at javax.swing.JFrame.frameInit() (/usr/lib/libgcj.so.5.0.0)
+   at javax.swing.JFrame.JFrame(java.lang.String) (/usr/lib/libgcj.so.5.0.0)
+   at MinetDataFrame.MinetDataFrame(java.lang.String) (Unknown Source)
+   at MinetDataFrame.MinetDataFrame(java.lang.String, MinetEventSource) (Unknown Source)
+   at MinetGui.createComponents() (Unknown Source)
+   at MinetGui.MinetGui(MinetConfiguration[]) (Unknown Source)
+   at MinetGui.MinetGui() (Unknown Source)
+   at Main.main(java.lang.String[]) (Unknown Source)
+
+
+Note that I ran Minet in TLAB by ssh, and all the modules loaded up really slowly. Perhaps this is a special case, and I should try this again by logging in to a TLAB machine directly. Unfortunately, I lost physical access to the TLAB for some reason...
+
+Decided it would be worthwhile to get the java gui working after seeing the screenshot in the tech report.  Ideally, I would use an IDE for working on it, but I had some trouble importing the code into it.  Currently, a custom makefile is used for compiling the java code.  I want to "translate" this makefile into a matching set of build options in netbeans (or eclipse, if that fails), but my rather limited experience with java is slowing me down here.  
+
+Removing MinetDOMLoader and MinetSAXLoader because they both reference an undefined class called MinetGUIConfig.  MinetDOMLoader and MinetSAXLoader seem to be unused anyways.
+
+Left off today at this compile error:
+/home/serg/minet/minet-java-gui2/PacketTester.java:90: cannot find symbol
+symbol  : constructor MinetEventEntry(java.lang.String,int,int,int,java.lang.String)
+location: class MinetEventEntry
+            my_gui.addEventEntry(new MinetEventEntry(eType,
+                                 ^
+
+This makes sense because the MinetEventEntry constructor has a completely different signature:
+public MinetEventEntry(int org, int src, int dest, String op_t, String data_t, String des, String buf) 
+
+Will investigate tomorrow...
+
+
+===================
+July 21 (Wednesday)
+===================
+
+(Continuing from yesterday) - actually, I did a usage search for the class PacketTester, and it seems like it isn't used anywhere, so I just deleted it.
+
+NOTE: I temporarily added all the Minet environment variables to ~/.profile and to ~/.bashrc (UPDATE: and to /etc/environment) so that I could debug the java gui (which requires $MINET_IPADDR and other minet vars to be set).  I might regret this later, especially if I forget.
+
+The java gui now compiles and runs from within the IDE, but there are still some problems.
+
+Here's what needs to be done to get the minet java gui to compile and run in Netbeans 6.8:
+
+The IDE won't build libjmm.so, so you have to use the Makefile to generate that.  See yesterday's entry for some necessary modifications to the Makefile and MinetNative.cc, as well as the xerces.jar being reported as corrupt.
+
+The IDE can handle building the rest of minet java gui using the default settings.  Create a "project from existing sources", then set the following project properties: add the minet-java-gui folder to the "source package folders"; add all the jars to the "compile time libraries" under "Libraries"; set the main class to Main under "Run"; finally, under "Run", and add the path to libjmm.so to "VM Options" in the following manner (change directory as necessary):
+-Djava.library.path="/home/serg/minet/minet-java-gui" 
+
+Compile and Run should work in Netbeans.  Outside of netbeans, when you run the jar file, you must specify the path to libjmm.so again:
+java -jar -Djava.library.path="/home/serg/minet/minet-java-gui" mmonitor.jar
+
+(There's probably a setting somewhere to remove this requirement, but I'll figure it out later).
+
+Now the problems:
+
+The gui will abort if the Minet environment variables aren't set.  Not a big deal in the terminal since you can always run setup.sh.  But if you want to use the Netbeans debugger (or a debugger in another IDE), this can be problematic.  Temporary solution (for development only!): place all the Minet environment variable definitions in /etc/environment:
+
+export MINET_IPADDR=165.124.182.221
+export MINET_ETHERNETADDR=b8:ac:6f:34:21:1e
+export MINET_ETHERNETDEVICE=eth0
+... and so on
+
+Reboot required.
+
+Next, when you start the java gui, you'll see this:
+
+====> Module is dying due to SIGSEGV <====
+Hit enter to continue
+
+I am currently still investigating this...
+
+Ok, looks like "fifoto" ends up being NULL in MinetAccept() when called with mod=MINET_DEVICE_DRIVER.  (TO DO: do a check for NULL and output a helpful message instead of crashing in MinetAccept() if fifoto or fifofrom end up being NULL).
+
+*** LEFT OFF HERE - WILL COME BACK ***
+
+Other than this, here's what else happened today.  Started implementing the idea I had on July 7 (see above) for the three-part documentation (students, instructors, developers). Decided to go with DocBook for now - seems to be the standard, although I'm finding it a little bit painful to use (ironically, DocBook's documentation isn't very helpful and the build system is a little confusing). I think it might be possible to use doxygen for generic documentation as well, so I'll look into it later as an alternative.  For now, I just started jotting down notes for what I want to include in each of these (see the "TO DO" lists inside doc/students/student-guide.html, doc/instructors/instructors.html, and doc/developers/index.html).
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,13 @@
+MinetTimeline displays the output of the monitoring process in a graphical way.  
+Here is how to use it:
+
+1. set MINET_MONITORTYPE to text 
+
+2. set MINET_DISPLAY to log - you can do this local just to the
+monitor if you'd like by editing monitor.sh.
+
+3. run your Minet session - ./go.sh ... ./stop.sh
+
+4. run timeline.pl
+
+

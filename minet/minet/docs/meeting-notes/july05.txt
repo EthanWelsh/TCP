@@ -1,0 +1,41 @@
+July 5, 2010
+
+Regarding priorities:
+* Complete missing features & do bug fixes first.
+* Performance is a non-issue for now - get everything else solid first.
+* Cross-platform compatibility & backward compatibility.
+	- Getting it to compile on the various systems that other CS depts use is kind of important.
+	- If you see something obvious, take care of it.
+	- In the future, look into autoconf.
+	- Also look into using wrapper classes for things like hashmap (and other data structures that might be platform dependent).
+		+ Also regarding hashmaps, just go ahead and use map if you want. Not a big deal since we only have a few items in the map anyways, and performance isn't top priority.
+	- Prof thinks getting it to run on Macs might be easier than on Windows.
+		+ Issues for Windows:
+			- fifo communication. (Currently not possibly on cygwin).
+			- libnet & libpcap. (Supposedly they have these, but they don't work very well, or quite the same... TODO: investigate).
+
+device_driver vs device_driver2:
+* First device_driver is meant to make it possible for students to write their own driver.  It mimics the way an actual driver works (using signals in place of interrupts? And MyISR() function is like the interrupt handler?).
+	- Doesn't quite work - has some bugs in it?  May need looking into for fixing.
+* device_driver2 ignores the way actual drivers work and just uses libpcap and libnet to craft/capture packets from the wire.
+* device_driver2 requires some special privileges (run as root or setuid).
+* IT depts have 3 options for getting the device driver functionality:
+	- Sane approach: do what we currently do (setuid on device_driver2. Distribute device_driver2 as a binary without source)
+		+ TODO: verify this works.  Is there a way to detect that a linux executable does this / has this?  Then try it on your own
+	- Semi-sane: there would be a gateway (dedicated machine) that sits on the local network that has device_driver2 running on it.  Students use the regular device_driver on their own machines, but it's linked up to the device_driver2 on the dedicated machine.
+		+ I'm not 100% clear on this. TODO: Read up on the low level stuff & device drivers, and look into device_driver.cc and device_driver2.cc.
+			- How exactly are they "linked up"?
+	- Insane: this means that the IT dept refuses to give any sort of root access to students & doesn't want to deal with setuid
+		+ Basically do what the Windows port currently does: IP datagram wraps the ethernet frame. Send as an IP multicast with a TTL of 1.  This basically translates to an ethernet broadcast, which is what we want to happen. It's a clever trick to get what we want and doesn't require root access.
+
+Things that would make it easier for students to use (TODO: more brainstorming here!)
+* Look into debug.cc
+	- AttachDebuggerHere
+	- Being able to pop up gdb or ddd at the point of failure
+	- Need to document that this is possible! In such a way that students would see it!
+* Make all the modules more resilient. If one module crashes, the others shouldn't crash with it! Try to reconnect or something.
+	- This would definitely make it easier to debug! 
+	- Additionally, would it be possible to get everything up and running again after the crash? Basically, when a module crashes, could it save its state information to a file, and then when it is started up again, read that information back in & recover?
+		+ Think about value gained vs effort put in... not sure if it's worth it! Wouldn't make it easier to debug.
+* Get MinetTimeline and java GUI up and running again
+

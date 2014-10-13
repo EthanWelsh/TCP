@@ -1,0 +1,181 @@
+
+See also:
+doc/doxygen/html/todo.html
+doc/doxygen/html/bug.html
+
+(These are compiled from @bug and @todo sections inside doxygen comments [and are usually minor things].)
+
+
+==================
+First things first
+==================
+
+Finish up the sock_module.
+
+Find & quash bugs.
+
+
+==================
+Finish sock_module
+==================
+
+Look for SELECTPOLL_BROKEN
+
+Relevant files to keep open:
+minet_socket.cc
+minet_socket.h
+//sock_module.cc
+
+
+
+
+==================================================================================================
+Major task: Architectural changes to add an option for compiling Minet as a monolithic application
+	Major subtask: Also add an option for compiling the Windows (TCP) version
+==================================================================================================
+
+This may also make it easier for all the different modules to communicate with each other (as oppose to using fifos).
+
+Subtasks
+--------
+
+Also add an option for compiling the Windows (TCP) version, and maybe even the Mac OS.
+
+Consider looking into autoconf!
+
+Consider emailing out a survey to see what OSs/compilers other CS departments are using.
+
+Notes
+-----
+
+Consider using wrapper classes for data structures such as hashmap. (You can just use map if you want).
+
+Wrap Linux-only include files such as sys/types.h (and many more) inside #ifdefs.
+	And actually, there's a heck of a lot more that would go inside ifdefs other than headers...
+	Q: How can I avoid ugly-fying the code with too many ifdefs?
+		(TODO: some research into refactoring. Also, porting)
+		Idea: for code that has heavy platform dependence, maybe have separate headers? E.g., ethernet_windows.h, and ethernet_unix.h
+			(Not sure I like this... maybe have separate directories instead?)
+		See how other portable applications do this.  wxWidgets might be a good example to look into... others?
+
+Build system is going to become quite complicated - idea was brought up to invent a mini-language to specify all the build options.
+	Q: Other than platform (Unix, Windows/TCP), and monolithic vs modular, what other options might there be to justify this? Maybe a graphical "wizard" application would be better? (Def. easier to use!)
+
+
+===========================
+Major task: Modernize Minet
+===========================
+
+[ALMOST DONE (as of July 6, 2010), but some cleanup is still necessary.]
+
+Make Minet compile on a recent system using gcc4 as well as the latest versions of all dependencies (libnet, etc).  Might be a noble goal to test it on other major Linux-based operating systems as well, especially whichever operating system is going to be the one that replaces what is currently in the TLAB and Wilklab.  Also check if it compiles using all well-known compiler toolchains (GCC for sure... maybe MSVC? ... others? MinGW? )
+
+
+Minor things:
+-------------
+
+[DONE]
+Use iostream library instead of stdio.  See: http://www.parashift.com/c++-faq-lite/input-output.html#faq-15.1 ("[15.1] Why should I use <iostream> instead of the traditional <cstdio>?").
+
+[DONE]
+Replace <xxx.h> with <xxx> wherever possible (hint: not everywhere, at least at the moment).  See: http://www.parashift.com/c++-faq-lite/coding-standards.html#faq-27.4 ("[27.4] What's the difference between <xxx>  and <xxx.h> headers?").
+
+
+
+=============================
+Major task: Add documentation
+=============================
+
+First, decide if this is necessary.  There's some value in making the students try to read/understand the code.  On the other hand, lack of documentation is a fairly common complaint about Minet; also, I think it would add another degree of professionalism for the project and would make adoption in other CS curriculums more likely.
+
+** Try fully documenting a single module first, and then decide if it's worth proceeding. **
+
+Decide on a documentation framework: probably doxygen, as it is the most widespread documentation framework for C++.
+
+Pros
+----
+* Lack of documentation is widely seen as a problem by students.
+* Having documentation would ideally allow students to focus on the task at hand (e.g., implementing TCP) instead of digging through source code and trying to figure out how Minet works.
+* Having easily-navigable HTML documentation would allow students/profs to understand quickly Minet's structure (a great resource in addition to the tech report).
+* Lend an additional degree of professionalism to the project. This may encourage wider adoption.
+
+Cons
+----
+* Potentially a time consuming task.
+* Some educational value may be lost by NOT making students read the code to understand *how* Minet works.
+	* But then again, that shouldn't be the goal, should it?  One way of looking at this is that, ideally, the details of how Minet works should be entirely transparent so that students can focus on the task at hand (implementing TCP, figuring out the routing algorithm, etc).  The only detail they might be concerned about is how the neighboring modules work (eg, sock_module and ip_module if you are implementing tcp_module).  But even then, ideally, you should be able to figure out how the modules work just by looking at their API, and never by having to look at the internal source code of those modules.
+* doxygen comments take up a fairly large amount of screen space, which might make the actual code harder to read. (But this should only be a concern for developers of Minet. Also, a good modern IDE should be able to fold comments).
+
+
+=========================================
+Major task: Update (or create a new?) GUI
+=========================================
+
+Try to get the previous Java GUIs up and running (Java-based monitor and MinetTimeline) and see whether there's a need to extend/improve those.
+
+This may make Minet significantly friendlier to use (as opposed to the current version which throws up a dozen xterms), and easier to debug.
+
+Subtasks and/or closely related tasks
+-------------------------------------
+
+Look into debug.cc, especially AttachDebuggerHere().  Would it be possible to present the user with gdb or ddd when one of the modules crashes?  Also, if one of the modules crashes, would it be possible to prevent all the other ones from crashing with it? (In other words, make all of Minet's modules a bit more resilient: try to reconnect to neighboring modules, and if that fails, make them wait instead of crashing due to SIGPIPE. {somewhat related: make it possible to restart Minet from the semi-crashed state}).
+
+I also think it would be nice if the start-up system was a bit simpler.  Make it possible to start the modules in any order, and see if it's possible to make it as simple as just executing each of the modules from the command line one by one. Ideally, it would be possible for the student to use his or her favorite IDE/debugger combo without having to bend over backwards.
+
+
+=============================================================================
+Semi-major task: Introduce a (better) serialization/deserialization framework
+=============================================================================
+
+[TODO: revise for readability - this was copied from diary entry for July 15]
+
+* Serialization/deserialization framework could use some improvement - didn't do anything, but read up on the topics
+	- this is what's currently stopping me from being able to get rid of the preprocessor metaprogramming stuff...
+		- Currently, they all define Serialize/Unserialize
+		- Perhaps we could have an abstract base class called Serializable with these functions in it
+		- Then every Minet data structure than can perform serialization can inherit from it (MinetEvent, RawEthernetPacket, Packet, ARPRequestResponse, etc)
+		- This would make solving the original problem a bit easier
+			- Either... MinetSend, MinetReceive, MinetMonitorSend, and MinetMonitorReceive could all be template functions
+			- Or... accept a Serializable object as a parameter (instead of the 6 different specialized types)
+	- Other potential benefits for improving the serialization framework:
+		- first of all, store data in human-readable format instead of binary (binary is what is currently the case)
+		- serialization/deserialization could also be the means by which we could re-init crashed modules (an idea we had earlier - see meeting notes from July 5 in "meetings" dir)
+	- good resources to use if you decide to improve the serialization framework:
+		- C++ Faq Lite intro to the topic (must read! but not a lot of detail)
+			http://www.parashift.com/c++-faq-lite/serialization.html#faq-36.7
+		- Chapter from a book (C++ in Action) - great read, walks you through how to actually implement serialization/deserialization using STL, but I think it's ignoring some of the tricky cases that the FAQ discusses (see 36.11) (and I might be wrong on this since I haven't fully thought this through yet, but some of these cases can potentially apply to Minet, so can't ignore!)
+			http://www.relisoft.com/book/tech/7serial.html
+
+
+
+============
+Minor things
+============
+
+
+
+Perhaps get rid of things like "using std::cout" and "using std::endl" and just fully qualify them everywhere?  Don't want to do "using namespace std", especially in a header. But at the same time, having to type out "std::endl" every time is kind of annoying and I don't want to impose that on anybody. Related: See C++ FAQ Lite [27.5] "Should I use using namespace std in my code?" at http://www.parashift.com/c++-faq-lite/coding-standards.html#faq-27.5
+
+Is there any way around the root access requirement for using device_driver2? (in other words, any way to use libpcap without root? Internet says maybe, but still have to experiment with this [use RAW mode for libnet_init, or something like that...]).
+
+Make code formatting consistent (AStyle)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

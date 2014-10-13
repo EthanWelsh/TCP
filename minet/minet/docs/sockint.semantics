@@ -1,0 +1,162 @@
+SOCK/UDP AND SOCK/TCP INTERFACE
+
+Summary 
+
+Communication between the SOCK module and lower-level modules is done
+using SockRequestResponse structures, which have serialization
+features.  The model is asynchronous request/response.  The sending
+module sends a SockRequestResponse structure which encodes its request
+to the receiving module.  In response, the receiving module sends back
+a SockRequestResponse that encodes the status of the last action.
+
+Request/Response Ordering
+
+Note that it is possible for both modules to send a request first.
+This is not a race condition - in principle, a module should be able
+to handle responses asynchronously as they arrive provided that the
+responses are returned in the same order that their requests are made.
+In other words, there must be a total order on requests and a total
+order on responses, but there may be only a partial order on requests
+and responses together.  This means that responses do not need (and do
+not have) any field to indicate which request they match to.
+
+Connection Matching
+
+A fundamental abstraction is that of a Connection, which is used even
+for connection-less protocols such as UDP.  The Connection structure
+encodes the endpoints of the communication (ipaddresses and ports) as
+well as its protocol.  One of the endpoints may be unbound if it will
+be supplied later (for example, a passive tcp open).  SOCK and
+lower-level modules identify particular flows of data by using a
+Connection.  For example, the SOCK module presents sockets to the
+application as integer file descriptors.  Internally, it maintains a
+file descriptor to Connection mapping.  When SOCK forwards, for
+example, an ACCEPT request, to TCP, it uses a Connection to identify
+the connection to TCP.  TCP maps the Connection to its internal
+representation as appropriate.
+
+
+Requests and Responses
+
+Here are the types of SockRequestResponse that can be communicated and 
+their meanings:
+
+SOCK->UDP
+
+CONNECT: active open to remote
+
+This is ignored by UDP.  A STATUS with the same connection, 0 bytes,
+and an error is returned.  The SOCK module must manage connect
+requests to UDP addrs
+
+ACCEPT: passive open from remote
+
+This is ignored by UDP.  Same behavior as CONNECT.
+
+WRITE: send UDP packet   
+
+connection src is localhost and port, connect dest is remotehost and
+port, protocol is UDP.  data contains data to be sent (if data is
+larger than the maximum size udp packet that udp can sent, then only
+the first maximum size (definined in config.h) is sent.  bytes and
+error are ignored.  The response is a STATUS with the same connection, 
+no data, bytes=num bytes actually sent, and error is the error code.
+One WRITE generates one UDP packet.
+
+FORWARD: forward matching packets
+
+Connection represents the connection to match on.  The local and remote addresses
+may be wildcards (IPADDR_ANY, PORT_ANY).  Received matching packets
+will be forwarded to the SOCK module as WRITEs
+
+CLOSE: close connection
+
+connection represents the connection to match on.  
+If there is a matching FORWARD request, this will remove it.
+Otherwise it is an error.  A STATUS with the same connection, zero
+bytes, and an error is returned.
+
+This is ignored by UDP.  Same behavior as CONNECT.
+
+STATUS: status update
+
+This should be sent in response to UDP WRITEs.  connection should
+match that in the WRITE.  The error code is required but ignored.
+bytes is the number of bytes that were actually received.
+
+UDP->SOCK
+
+WRITE: new data is available.  
+
+connection is fully bound, giving both endpoints and the proto, data
+contains the data in the packet, bytes and error are undefined.  In
+response, SOCK should send a STATUS specifiying how many bytes were
+read.  Note that UDP will not buffer data.
+
+STATUS: status update
+
+sent in response to SOCK->UDP requests as noted above.
+
+
+SOCK->TCP
+
+CONNECT: active open to remote
+
+connection should be fully bound.  data, bytes, and error are ignored.
+The TCP module will begin the active open and immediately return a
+STATUS with the same connection.  After the connection has been fully
+established, it will return a WRITE with zero bytes.
+The SOCK module must manage binding on connect requests.
+
+ACCEPT: passive open from remote
+
+connect should be fully bound on the local side and unbound on the
+remote side.  data, bytes, and error are ignored.  TCP module will do
+the passive open and immediately return a STATUS with no error.
+Whenever a connection arrives, TCP Will accept it and send a 0-byte
+WRITE with the fully bound connection.  The number of outstanding
+connections will *not* be affected by listen() and is implementation
+dependent.  
+
+WRITE: send UDP packet   
+
+connection src is localhost and port, connect dest is remotehost and
+port, protocol is TCP - this is the connection that ACCEPT or CONNECT
+returns in its zero byte WRITE.  data contains data to be sent.  bytes and
+error are ignored.  The response is a STATUS with the same connection, 
+no data, bytes=num bytes actually queued by TCP, and error is the error code.
+One WRITE may generate multiple TCP segments.  It is the
+responsibility of SOCK or the application to deal with WRITEs that
+actually write < the required number of bytes.
+
+FORWARD: forward matching packets
+
+This is ignored for TCP.  A zero error status will be returned.
+
+CLOSE: close connection
+
+connection represents the connection to match on.  
+If there is a matching connection, this will close it.
+Otherwise it is an error.  A STATUS with the same connection, zero
+bytes, and an error is returned.
+
+STATUS: status update
+
+This should be sent in response to TCP WRITEs.  connection should
+match that in the WRITE.  It is important that "bytes" actually
+reflect the number of bytes read from the WRITE.  TCP will resend the
+remaining bytes.
+
+TCP->SOCK
+
+WRITE: new data
+
+connection will be fully bound, data will contain the data.  In
+response, SOCK should send a STATUS with the same connection and the
+number of bytes it actually accepted.  TCP will resend data that has
+not yet been accepted.
+
+STATUS: status update
+
+sent in response to various connection requests as described above.
+

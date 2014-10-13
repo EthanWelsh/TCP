@@ -1,0 +1,1 @@
+docbook2html -V nochunks=t student-guide.docbook

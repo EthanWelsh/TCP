@@ -1,0 +1,16 @@
+module-objs := 	arp_module.o \
+		ethernet_mux.o \
+		icmp_module.o \
+		ip_module.o \
+		ip_module_diffusion.o \
+		ip_module_routing.o \
+		ip_mux.o \
+		ipother_module.o \
+		monitor.o \
+		other_module.o \
+		sock_module.o \
+		tcp_module.o \
+		udp_module.o 
+
+
+#		tcp_module_stub.o \

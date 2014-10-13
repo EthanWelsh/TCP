@@ -1,0 +1,35 @@
+List of Things Serg Did That He and Others Might Regret Later On
+================================================================
+
+Sergey Krilov, summer 2010
+
+I will be using this file to keep track of things I did on a daily basis that I wasn't 100% sure of.  This file is meant to be an aid for myself for the duration of this summer.  It is NOT in any way meant to be a permanent addition to Minet's file listing.
+
+
+======================================================================
+
+Perform a project wide search for "MIGHT REGRET".  (I include this in the comments whenever I do something I'm not sure of).
+
+While updating to compile on gcc 4:
+* Project-wide search and replace for <iostream.h> with <iostream>
+* Project-wide search and replace for <stdio.h> with <cstdio>
+* Went ahead and permanently replaced rope with string
+	* May want to go back and actually measure the performance difference to see if it's worth keeping rope.
+		* (Note: it's possible if you <ext/rope> instead of <rope> for the #include statement and then use __gnu_cxx::crope instead of crope as the typename.)
+* Code no longer assumes that namespace std is global.  In most places, I fully qualified things like ostream with std::ostream.
+	* For cpp files that rely heavily on cout, endl, and cerr, I put "using std::cout;", "using std::endl;" statements near the top.
+
+
+Starting documentation
+* Will have to be kept up to date!
+* Here are the places to look:
+Doc comments throughout code. They all start with:
+	/**
+	or with:
+	//!
+Doxygen is set to output to the doc/doxygen directory. "Home page" is at doc/doxygen/html/index.html. However, since most of Minet is not yet documented, it's easier to look for these inside the code by searching for the special comment tags.
+Make sure the external links are up to date! (I linked to some parts of the Beej's Guide to Networking, which is available free online. Be aware that these links may change if he decides to move some pages!).
+I also started some generic documentation inside the "doc" directory (see doc/index.html).  This will include guides for students, instructors, and future Minet developers.  This must also be kept up to date in the future.
+
+[Note to self / TEMP]:
+Set Minet env vars inside ~/.profile, ~/.bashrc, and in /etc/environment so that I could use the Netbeans debugger with the java gui. Remove these later!!

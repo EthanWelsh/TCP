@@ -1,0 +1,2 @@
+tcpdump bug (checksum=0)
+remove comment saying lengths are autorecalced

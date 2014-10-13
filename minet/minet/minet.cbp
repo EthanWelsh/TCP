@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="minet" />
+		<Option makefile_is_custom="1" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="all">
+				<Option output="bin/minet" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="src/apps/app.cc" />
+		<Unit filename="src/apps/http_client.cc" />
+		<Unit filename="src/apps/http_server1.cc" />
+		<Unit filename="src/apps/http_server2.cc" />
+		<Unit filename="src/apps/http_server3.cc" />
+		<Unit filename="src/apps/icmp_app.cc" />
+		<Unit filename="src/apps/tcp_client.cc" />
+		<Unit filename="src/apps/tcp_server.cc" />
+		<Unit filename="src/apps/udp_client.cc" />
+		<Unit filename="src/apps/udp_server.cc" />
+		<Unit filename="src/core/arp_module.cc" />
+		<Unit filename="src/core/ethernet_mux.cc" />
+		<Unit filename="src/core/icmp_module.cc" />
+		<Unit filename="src/core/ip_module.cc" />
+		<Unit filename="src/core/ip_module_diffusion.cc" />
+		<Unit filename="src/core/ip_module_routing.cc" />
+		<Unit filename="src/core/ip_mux.cc" />
+		<Unit filename="src/core/ipother_module.cc" />
+		<Unit filename="src/core/monitor.cc" />
+		<Unit filename="src/core/other_module.cc" />
+		<Unit filename="src/core/sock_module.cc" />
+		<Unit filename="src/core/tcp_module.cc" />
+		<Unit filename="src/core/tcp_module_stub.cc" />
+		<Unit filename="src/core/udp_module.cc" />
+		<Unit filename="src/libminet_core/Minet.cc" />
+		<Unit filename="src/libminet_core/Minet.h" />
+		<Unit filename="src/libminet_core/Monitor.cc" />
+		<Unit filename="src/libminet_core/Monitor.h" />
+		<Unit filename="src/libminet_core/arp.cc" />
+		<Unit filename="src/libminet_core/arp.h" />
+		<Unit filename="src/libminet_core/bitsource.cc" />
+		<Unit filename="src/libminet_core/bitsource.h" />
+		<Unit filename="src/libminet_core/buffer.cc" />
+		<Unit filename="src/libminet_core/buffer.h" />
+		<Unit filename="src/libminet_core/config.cc" />
+		<Unit filename="src/libminet_core/config.h" />
+		<Unit filename="src/libminet_core/constate.cc" />
+		<Unit filename="src/libminet_core/constate.h" />
+		<Unit filename="src/libminet_core/debug.cc" />
+		<Unit filename="src/libminet_core/debug.h" />
+		<Unit filename="src/libminet_core/error.cc" />
+		<Unit filename="src/libminet_core/error.h" />
+		<Unit filename="src/libminet_core/ethernet.cc" />
+		<Unit filename="src/libminet_core/ethernet.h" />
+		<Unit filename="src/libminet_core/headertrailer.cc" />
+		<Unit filename="src/libminet_core/headertrailer.h" />
+		<Unit filename="src/libminet_core/icmp.cc" />
+		<Unit filename="src/libminet_core/icmp.h" />
+		<Unit filename="src/libminet_core/ip.cc" />
+		<Unit filename="src/libminet_core/ip.h" />
+		<Unit filename="src/libminet_core/packet.cc" />
+		<Unit filename="src/libminet_core/packet.h" />
+		<Unit filename="src/libminet_core/packet_queue.cc" />
+		<Unit filename="src/libminet_core/packet_queue.h" />
+		<Unit filename="src/libminet_core/raw_ethernet_packet.cc" />
+		<Unit filename="src/libminet_core/raw_ethernet_packet.h" />
+		<Unit filename="src/libminet_core/raw_ethernet_packet_buffer.cc" />
+		<Unit filename="src/libminet_core/raw_ethernet_packet_buffer.h" />
+		<Unit filename="src/libminet_core/route.cc" />
+		<Unit filename="src/libminet_core/route.h" />
+		<Unit filename="src/libminet_core/sock.h" />
+		<Unit filename="src/libminet_core/sock_mod_structs.cc" />
+		<Unit filename="src/libminet_core/sock_mod_structs.h" />
+		<Unit filename="src/libminet_core/sockint.cc" />
+		<Unit filename="src/libminet_core/sockint.h" />
+		<Unit filename="src/libminet_core/tcp.cc" />
+		<Unit filename="src/libminet_core/tcp.h" />
+		<Unit filename="src/libminet_core/tcpstate.cc" />
+		<Unit filename="src/libminet_core/tcpstate.h" />
+		<Unit filename="src/libminet_core/udp.cc" />
+		<Unit filename="src/libminet_core/udp.h" />
+		<Unit filename="src/libminet_core/util.cc" />
+		<Unit filename="src/libminet_core/util.h" />
+		<Unit filename="src/libminet_socket/minet_socket.cc" />
+		<Unit filename="src/libminet_socket/minet_socket.h" />
+		<Unit filename="src/lowlevel/bridge.cc" />
+		<Unit filename="src/lowlevel/device_driver.cc" />
+		<Unit filename="src/lowlevel/device_driver2.cc" />
+		<Unit filename="src/lowlevel/reader.cc" />
+		<Unit filename="src/lowlevel/writer.cc" />
+		<Unit filename="src/test/sock_test_app.cc" />
+		<Unit filename="src/test/sock_test_tcp.cc" />
+		<Unit filename="src/test/test_arp.cc" />
+		<Unit filename="src/test/test_bitsource.cc" />
+		<Unit filename="src/test/test_raw_ethernet_packet_buffer.cc" />
+		<Unit filename="src/test/test_reader.cc" />
+		<Unit filename="src/test/test_writer.cc" />
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

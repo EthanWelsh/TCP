@@ -1,0 +1,1 @@
+The files in this directory are code samples used inside the doxygen documentation (search for @include in the code). This directory should match the EXAMPLE_PATH in the "Doxyfile".

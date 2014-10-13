@@ -1,0 +1,13 @@
+MinetJavaGUI replaces the regular text-based monitoring process with a
+graphical representation that tries to run in real-time.  Here is how
+to use it:
+
+1. set MINET_MONITORTYPE to javagui
+
+1.a. You may also want to set MINET_DISPLAY to log, but it's not necessary.
+
+2. run your Minet session - ./go.sh ... ./stop.sh
+
+Note that MinetJavaGUI has difficulty keeping up in many situations,
+in which case it makes your stack run at the speed of the GUI.
+
