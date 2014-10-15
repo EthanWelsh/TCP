@@ -1,8 +1,9 @@
-// You will build this in project part B - this is merely a
-// stub that does nothing but integrate into the stack
-
-// For project parts A and B, an appropriate binary will be 
-// copied over as part of the build process
+/*
+	Joshua Miner (jmm299)
+	Ethan Welsh	(ejw45)
+	CS1652 Project 2
+	tcp_module.cc
+*/
 
 #include <sys/time.h>
 #include <sys/types.h>
