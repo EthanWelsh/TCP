@@ -4,8 +4,6 @@
 // For project parts A and B, an appropriate binary will be 
 // copied over as part of the build process
 
-
-
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -17,7 +15,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-
 
 #include <iostream>
 
@@ -35,18 +32,16 @@ struct TCPState
     }
 };
 
-
 int main(int argc, char *argv[])
 {
-    MinetHandle mux;
-    MinetHandle sock;
+    MinetHandle mux;	// Mutex to ensure not preempted
+    MinetHandle sock;	// Socket
 
-    ConnectionList<TCPState> clist;
+    ConnectionList<TCPState> clist;	// Maintains a list of all current connections
 
-    MinetInit(MINET_TCP_MODULE);
+    MinetInit(MINET_TCP_MODULE); // Initialize the minet tcp module
 
     mux = MinetIsModuleInConfig(MINET_IP_MUX) ? MinetConnect(MINET_IP_MUX) : MINET_NOHANDLE;
-
     sock = MinetIsModuleInConfig(MINET_SOCK_MODULE) ? MinetAccept(MINET_SOCK_MODULE) : MINET_NOHANDLE;
 
     if ((mux == MINET_NOHANDLE) && (MinetIsModuleInConfig(MINET_IP_MUX)))
@@ -99,6 +94,5 @@ int main(int argc, char *argv[])
     }
 
     MinetDeinit();
-
     return 0;
 }
