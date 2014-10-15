@@ -70,18 +70,112 @@ int main(int argc, char *argv[])
 
     while (MinetGetNextEvent(event, timeout) == 0)
     {
-        if ((event.eventtype == MinetEvent::Dataflow) &&
-                (event.direction == MinetEvent::IN))
+        if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
         {
             if (event.handle == mux)
             {
                 // ip packet has arrived!
+
+
+		        // ip packet has arrived!
+	        
+              
+                /*
+                 * then within the (event.handle == mux) triggers whenever you receive a packet
+                 *
+                 * I check my ConnecitonList clist if I have the connection (which I should)
+                 *
+                 * extract the state.  check to see which state it is in using a switch statement (i.e. LISTEN state)
+                 *
+                 * Then I respond to the handshake (parse the packet using TCPHeader and IPHeader classes.  similar
+                 *  to how udp_module does it)
+                 *
+                 * check to make sure its a SYN packet
+                 *
+                 * if it is, I construct my own SYN-ACK packet
+                 *
+                 * then I use MinetSent() to send it to the socket to forward along
+                 *
+                 * so as far as I understand it, you have two main tasks.  1 if statement that handles all socket 
+                 * changes (connect, accept, close, etc.)  and one if statement that handles packets (mux)
+                 *
+                 *
+                 */
+                
+
+	      Packet p;
+	      unsigned short len = TCPHeader::EstimateTCPHeaderLength(p);
+	      
+	      bool checksumok;
+	      MinetReceive(mux, p);
+	      
+	      p.ExtractHeaderFromPayload < TCPHeader > (8);
+	      
+	      TCPHeader tcph;
+	      tcph = p.FindHeader(Headers::TCPHeader);
+	      
+	      checksumok = tcph.IsCorrectChecksum(p);
+	      
+	      IPHeader iph;
+	      iph = p.FindHeader(Headers::IPHeader);
+	      
+	      Connection c;
+	      // note that this is flipped around because
+	      // "source" is interepreted as "this machine"
+	      iph.GetDestIP(c.src);
+	      iph.GetSourceIP(c.dest);
+	      iph.GetProtocol(c.protocol);
+	      tcph.GetDestPort(c.srcport);
+	      tcph.GetSourcePort(c.destport);
+	      ConnectionList<TCPState>::iterator cs = clist.FindMatching(c);
+	      
+	      if (cs != clist.end())
+	      {
+		  tcph.GetLength(len);
+		  len -= TCP_HEADER_LENGTH;
+		  Buffer &data = p.GetPayload().ExtractFront(len);
+		  SockRequestResponse write(WRITE, (*cs).connection, data, len, EOK);
+
+		  if (!checksumok)
+                  {
+		      MinetSendToMonitor(MinetMonitoringEvent("forwarding packet to sock even though checksum failed"));
+                  }
+		  MinetSend(sock, write);
+
+
+
+
+
+
+
+
+
             }
 
             if (event.handle == sock)
             {
                 // socket request or response has arrived
-            }
+	
+	       	 /* create a new State and ConnectionToStateMapping
+                  *
+                  * ConnectionToStateMapping stores states
+                  *
+                  * then you have  ConnectionList<TCPState> clist; that stores the ConnectionToStateMappings
+                  *
+                  * these are described slightly in the project description
+                  *
+                  * they basically store all your information regarding the TCP state for the packet mux
+                  *
+                  * so within the Socekt part, I am only doing passive open right now
+                  *
+                  * Basically if the "sock" event is in case "ACCEPT", meaning a server is opening to idle
+                  * for connections, create a TCP state to mark that this server connection is in "LISTEN"
+                  * TCP state
+                  */            
+
+
+
+	    }
         }
 
         if (event.eventtype == MinetEvent::Timeout)
