@@ -19,6 +19,7 @@
 
 #include <iostream>
 
+#include "tcpstate.h"
 #include "Minet.h"
 
 using namespace std;
@@ -72,48 +73,48 @@ int main(int argc, char *argv[])
     {
         if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
         {
-
-
-            if (event.handle == sock)
-            { // FOLLOW THE GUIDE OF http://www.cs.northwestern.edu/~kch670/eecs340/tcp_module_smaple_code.cc
-
-
-
-                // socket request or response has arrived
-
-                /* create a new State and ConnectionToStateMapping
+			if (event.handle == sock)
+            { 
+				// socket request or response has arrived
+			
+				/* create a new State and ConnectionToStateMapping
                   *
                   * ConnectionToStateMapping stores states
                   *
-                  * then you have  ConnectionList<TCPState> clist; that stores the ConnectionToStateMappings
+                  * then you have  ConnectionList<TCPState> clist; that 
+				  stores the ConnectionToStateMappings
                   *
                   * these are described slightly in the project description
                   *
-                  * they basically store all your information regarding the TCP state for the packet mux
+                  * they basically store all your information regarding the
+				  TCP state for the packet mux
                   *
-                  * so within the Socekt part, I am only doing passive open right now
+                  * so within the Socekt part, I am only doing passive open 
+				  right now
                   *
-                  * Basically if the "sock" event is in case "ACCEPT", meaning a server is opening to idle
-                  * for connections, create a TCP state to mark that this server connection is in "LISTEN"
+                  * Basically if the "sock" event is in case "ACCEPT",
+				  meaning a server is opening to idle
+                  * for connections, create a TCP state to mark that 
+				  this server connection is in "LISTEN"
                   * TCP state
                   */
 
-                SockRequestResponse req;
-                SockRequestResponse reply;
+                SockRequestResponse req;	// Hold the request
+                SockRequestResponse reply;	// Hold the response
 
                 MinetReceive(sock, req);
+				Packet envelope;
                 switch (req.type)
                 {
                     case CONNECT:
                     {
-                        break;
+                        cerr<< "Working on the connection\n" <<endl;
+						
                     }
+					break;
                     case ACCEPT:
-                    { // ignored, send OK response
-
-
+                    { 
                         reply.type = STATUS;
-
                         reply.connection = req.connection;
                         // buffer is zero bytes
                         reply.bytes = 0;
@@ -150,9 +151,9 @@ int main(int argc, char *argv[])
                     }
 
                     case STATUS:
-                        // ignored, no response needed
-                        break;
-                        // case SockRequestResponse::WRITE:
+					{
+						cout<<"status: "<<endl;
+					}
                     case WRITE:
                     {
                         break;
@@ -174,9 +175,7 @@ int main(int argc, char *argv[])
                         MinetSend(sock, repl);
                     }
                 }
-
-
-                if (event.handle == mux)
+				if (event.handle == mux)
                 {
                     // ip packet has arrived!
 
@@ -242,19 +241,15 @@ int main(int argc, char *argv[])
                         }
                         MinetSend(sock, write);
                     }
-
-
                 }
             }
-
             if (event.eventtype == MinetEvent::Timeout)
             {
                 // timeout ! probably need to resend some packets
             }
 
         }
-
-        MinetDeinit();
-        return 0;
+        MinetDeinit();	// Deinitialize the minet stack
+        return 0;	// Program finished
     }
 }
