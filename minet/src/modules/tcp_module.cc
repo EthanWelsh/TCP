@@ -41,23 +41,22 @@ int main(int argc, char *argv[])
 
     MinetInit(MINET_TCP_MODULE); // Initialize the minet tcp module
 
-    mux = MinetIsModuleInConfig(MINET_IP_MUX) ? MinetConnect(MINET_IP_MUX) : MINET_NOHANDLE;
-    sock = MinetIsModuleInConfig(MINET_SOCK_MODULE) ? MinetAccept(MINET_SOCK_MODULE) : MINET_NOHANDLE;
+    mux = MinetIsModuleInConfig(MINET_IP_MUX) ?
+			MinetConnect(MINET_IP_MUX) :
+			MINET_NOHANDLE;
+    sock = MinetIsModuleInConfig(MINET_SOCK_MODULE) ?
+			MinetAccept(MINET_SOCK_MODULE) :
+			MINET_NOHANDLE;
 
     if ((mux == MINET_NOHANDLE) && (MinetIsModuleInConfig(MINET_IP_MUX)))
     {
-
         MinetSendToMonitor(MinetMonitoringEvent("Can't connect to ip_mux"));
-
         return -1;
     }
 
-    if ((sock == MINET_NOHANDLE) &&
-            (MinetIsModuleInConfig(MINET_SOCK_MODULE)))
+    if ((sock == MINET_NOHANDLE) && (MinetIsModuleInConfig(MINET_SOCK_MODULE)))
     {
-
         MinetSendToMonitor(MinetMonitoringEvent("Can't accept from sock_module"));
-
         return -1;
     }
 
@@ -70,11 +69,9 @@ int main(int argc, char *argv[])
 
     while (MinetGetNextEvent(event, timeout) == 0)
     {
-
         if ((event.eventtype == MinetEvent::Dataflow) &&
                 (event.direction == MinetEvent::IN))
         {
-
             if (event.handle == mux)
             {
                 // ip packet has arrived!
