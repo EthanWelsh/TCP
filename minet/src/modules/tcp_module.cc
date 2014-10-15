@@ -19,6 +19,8 @@
 
 #include <iostream>
 
+#include <string.h>
+#include<list>
 #include "tcpstate.h"
 #include "Minet.h"
 
@@ -41,6 +43,30 @@ struct TCPState
         return os;
     }
 };
+
+void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mapping, int HeaderType, int data_amount, bool timed_out)
+{
+	cerr<< "---------------Building a packet to send off------------" << endl;
+	unsigned char alerts = 0;
+	int packet_size = data_amount + TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
+	IPHeader new_ipheader;
+	TCPHeader new_tcpheader;
+	new_ipheader.SetSourceIP(c_mapping.connection.src);
+	new_ipheader.SetDestIP(c_mapping.connection.dest);
+	new_ipheader.SetTotalLength(packet_size);
+	new_ipheader.SetProtocol(IP_PROTO_TCP);
+	to_build.PushFrontHeader(new_ipheader);
+	cerr << "\nipheader_new: \n" << ipheader_new << endl;
+	
+	new_tcpheader.SetSourcePort(c_mapping.connection.srcport, to_build);
+	new_tcpheader.SetDestPort(c_mapping.connection.destport, to_build);
+	new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_build);
+	
+	new_tcpheader.SetAckNum(c_mapping.state.GetLastRecvd(),to_build);
+	new_tcpheader.SetWinSize(c_mapping.state.GetRwnd(), to_build);
+	new_tcpheader.SetUrgentPtr(0, to_build);
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -102,10 +128,23 @@ int main(int argc, char *argv[])
 							TCPState curr= TCPState(1, 0, 3);
 							// Link connection and curr state
 							ConnectionToStateMapping<TCPState> c_mapping;
-							c_mapping.connection= req.connection;
-							c_mapping.timeout = Time()+2;
-							c_mapping.state= curr;
+							c_mapping.connection= req.connection;	// Update map connection
+							c_mapping.timeout = Time()+2;	// Update map timeout value
+							c_mapping.state= curr;	// Update map state
 							c_mapping.bTmrActive= true;
+							
+							clist.push_back(c_mapping); // Push the mapping on the back of the Connection List
+							
+							build_packet(envelope, c_mapping, SYN_SENT, 0, false);	// Make the packet
+							// Send the packet twice
+							MinetSend(mux, envelope);
+							MinetSend(mux, envelope);
+							
+							reply.type = STATUS;
+							reply.connection = req.connection;
+							reply.bytes = 0;
+							reply.error = EOK;
+							MinetSend(sock, reply);
 						}
 						break;
 						case ACCEPT:
