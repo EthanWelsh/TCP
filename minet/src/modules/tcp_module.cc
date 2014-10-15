@@ -24,6 +24,14 @@
 
 using namespace std;
 
+static const int SYN = 1;
+static const int ACK = 2;
+static const int SYN_ACK = 3;
+static const int PSH_ACK = 4;
+static const int FIN = 5;
+static const int FIN_ACK = 6;
+static const int RST = 7;
+
 struct TCPState
 {
     // need to write this
@@ -74,109 +82,99 @@ int main(int argc, char *argv[])
         if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
         {
 			if (event.handle == sock)
-            { 
+            { 				
 				// socket request or response has arrived
-			
-				/* create a new State and ConnectionToStateMapping
-                  *
-                  * ConnectionToStateMapping stores states
-                  *
-                  * then you have  ConnectionList<TCPState> clist; that 
-				  stores the ConnectionToStateMappings
-                  *
-                  * these are described slightly in the project description
-                  *
-                  * they basically store all your information regarding the
-				  TCP state for the packet mux
-                  *
-                  * so within the Socekt part, I am only doing passive open 
-				  right now
-                  *
-                  * Basically if the "sock" event is in case "ACCEPT",
-				  meaning a server is opening to idle
-                  * for connections, create a TCP state to mark that 
-				  this server connection is in "LISTEN"
-                  * TCP state
-                  */
-
                 SockRequestResponse req;	// Hold the request
                 SockRequestResponse reply;	// Hold the response
 
                 MinetReceive(sock, req);
 				Packet envelope;
-                switch (req.type)
-                {
-                    case CONNECT:
-                    {
-                        cerr<< "Working on the connection\n" <<endl;
-						
-                    }
-					break;
-                    case ACCEPT:
-                    { 
-                        reply.type = STATUS;
-                        reply.connection = req.connection;
-                        // buffer is zero bytes
-                        reply.bytes = 0;
-                        reply.error = EOK;
-
-                        // **** CREATE SOCKET ****
-                        //ConnectionToStateMapping <TCPDriver> m = new ConnectionToStateMapping<TCPDriver>();
-                        //m.connection = req.connection;
-
-
-                        TCPDriver tstate = new TCPDriver(req.connection.src, req.connection.dest, req.connection.srcport, LISTEN);
-
-                        Connection connect = new Connection();
-
-                        connect.src = MyIPAddr();
-                        connect.dest = IPAddress(req.connection.src);
-                        connect.protocol = IP_PROTO_TCP;
-                        connect.srcport = req.connection.srcport;
-                        connect.destport = req.connection.destport; // TODO should this be 0?
-
-                        ConnectionToStateMapping <TCPDriver> m = new ConnectionToStateMapping<TCPDriver>();
-                        m.connection = connect;
-                        m.state = tstate;
-                        clist.push_back(m);
-
-                        // ***********************
-
-
-                        // **** CREATE
-
-
-                        MinetSend(sock, reply);
-                        break;
-                    }
-
-                    case STATUS:
+				// Check to see if the connection exists
+				ConnectionList<TCPState>::iterator check_exists= clist.FindMatching(req.connection);
+				if(check_exists == clist.end())
+				{
+					switch (req.type)
 					{
-						cout<<"status: "<<endl;
+						case CONNECT:
+						{
+							cerr<< "Working on the connection\n" <<endl;
+							// Build a state -- initialSequenceNum, state, timertries
+							TCPState curr= TCPState(1, 0, 3);
+							// Link connection and curr state
+							ConnectionToStateMapping<TCPState> c_mapping;
+							c_mapping.connection= req.connection;
+							c_mapping.timeout = Time()+2;
+							c_mapping.state= curr;
+							c_mapping.bTmrActive= true;
+						}
+						break;
+						case ACCEPT:
+						{ 
+							reply.type = STATUS;
+							reply.connection = req.connection;
+							// buffer is zero bytes
+							reply.bytes = 0;
+							reply.error = EOK;
+
+							// **** CREATE SOCKET ****
+							//ConnectionToStateMapping <TCPDriver> m = new ConnectionToStateMapping<TCPDriver>();
+							//m.connection = req.connection;
+
+
+							TCPDriver tstate = new TCPDriver(req.connection.src, req.connection.dest, req.connection.srcport, LISTEN);
+
+							Connection connect = new Connection();
+
+							connect.src = MyIPAddr();
+							connect.dest = IPAddress(req.connection.src);
+							connect.protocol = IP_PROTO_TCP;
+							connect.srcport = req.connection.srcport;
+							connect.destport = req.connection.destport; // TODO should this be 0?
+
+							ConnectionToStateMapping <TCPDriver> m = new ConnectionToStateMapping<TCPDriver>();
+							m.connection = connect;
+							m.state = tstate;
+							clist.push_back(m);
+
+							// ***********************
+
+
+							// **** CREATE
+
+
+							MinetSend(sock, reply);
+							break;
+						}
+
+						case STATUS:
+						{
+							cout<<"status: "<<endl;
+						}
+						case WRITE:
+						{
+							break;
+						}
+						case FORWARD:
+						{
+							break;
+						}
+						case CLOSE:
+						{
+							break;
+						}
+						default:
+						{
+							SockRequestResponse repl;
+							// repl.type=SockRequestResponse::STATUS;
+							repl.type = STATUS;
+							repl.error = EWHAT;
+							MinetSend(sock, repl);
+						}
 					}
-                    case WRITE:
-                    {
-                        break;
-                    }
-                    case FORWARD:
-                    {
-                        break;
-                    }
-                    case CLOSE:
-                    {
-                        break;
-                    }
-                    default:
-                    {
-                        SockRequestResponse repl;
-                        // repl.type=SockRequestResponse::STATUS;
-                        repl.type = STATUS;
-                        repl.error = EWHAT;
-                        MinetSend(sock, repl);
-                    }
-                }
-				if (event.handle == mux)
-                {
+				}
+			}
+			if (event.handle == mux)
+			{
                     // ip packet has arrived!
 
                     /*
@@ -241,15 +239,13 @@ int main(int argc, char *argv[])
                         }
                         MinetSend(sock, write);
                     }
-                }
-            }
-            if (event.eventtype == MinetEvent::Timeout)
-            {
-                // timeout ! probably need to resend some packets
-            }
-
-        }
-        MinetDeinit();	// Deinitialize the minet stack
-        return 0;	// Program finished
-    }
+			}
+		}
+		if (event.eventtype == MinetEvent::Timeout)
+		{
+			// timeout ! probably need to resend some packets
+		}
+	}
+	MinetDeinit();	// Deinitialize the minet stack
+	return 0;	// Program finished
 }
