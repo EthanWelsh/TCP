@@ -283,7 +283,9 @@ int main(int argc, char *argv[])
 
                 Packet mux_packet;
 
-                bool checksum_matches;
+                MinetReceive(mux, mux_packet);	// Receive packet
+
+
 
                 unsigned char alerts = 0; //f stands for flags.
                 unsigned char f;
@@ -295,11 +297,11 @@ int main(int argc, char *argv[])
 
 
 
-                MinetReceive(mux, mux_packet);	// Receive packet
+
                 mux_packet.ExtractHeaderFromPayload<TCPHeader>(8);	// Extract Header from packet
                 TCPHeader tcp_header;
                 tcp_header = mux_packet.FindHeader(Headers::TCPHeader);
-                checksum_matches= tcp_header.IsCorrectChecksum(mux_packet);	// Verify the checksum matches
+
 
                 IPHeader ip_header;
                 ip_header = mux_packet.FindHeader(Headers::IPHeader);
