@@ -39,7 +39,7 @@ static const int HEADERTYPE_FIN = 5;
 static const int HEADERTYPE_FINACK = 6;
 static const int HEADERTYPE_RST = 7;
 
-struct TCPState
+/*struct TCPState
 {
     // need to write this
     std::ostream &Print(std::ostream &os) const
@@ -47,7 +47,7 @@ struct TCPState
         os << "TCPState()";
         return os;
     }
-};
+};*/
 
 void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mapping, int HeaderType, int data_amount, bool timed_out)
 {
@@ -61,7 +61,7 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
 	new_ipheader.SetTotalLength(packet_size);
 	new_ipheader.SetProtocol(IP_PROTO_TCP);
 	to_build.PushFrontHeader(new_ipheader);
-	cerr << "\nipheader_new: \n" << ipheader_new << endl;
+	cerr << "\n new_ipheader: \n" << new_ipheader << endl;
 	
 	new_tcpheader.SetSourcePort(c_mapping.connection.srcport, to_build);
 	new_tcpheader.SetDestPort(c_mapping.connection.destport, to_build);
@@ -117,10 +117,10 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
 	}
         
 	// Set the flag
-	tcpheader_new.SetFlags(alerts, to_build);
+	new_tcpheader.SetFlags(alerts, to_build);
 	
 	// Print out the finished TCP header for testing
-	cerr << "\nnew_tcpheader: \n" << new_tcpheader<< endl;
+	cerr << "\new_tcpheader: \n" << new_tcpheader<< endl;
 	
 	if (isTimeout) // If dealing with a timeout
 	{ 
@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    cerr << "tcp_module STUB VERSION handling tcp traffic.......\n";
+    cerr << "tcp_module STUB VERSION handling tcp traffic.......\n"<< endl;
 
     MinetSendToMonitor(MinetMonitoringEvent("tcp_module STUB VERSION handling tcp traffic........"));
 
@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
 						}
 						break;
 						case ACCEPT:
-						{ 
+						{ /*
 							reply.type = STATUS;
 							reply.connection = req.connection;
 							// buffer is zero bytes
@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
 							// **** CREATE
 
 
-							MinetSend(sock, reply);
+							MinetSend(sock, reply);*/
 							break;
 						}
 
