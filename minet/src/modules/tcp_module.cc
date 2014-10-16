@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
 				ConnectionList<TCPState>::iterator cs = clist.FindMatching(c);
 				if (cs != clist.end())
 				{
-					tcp_header.GetLength(length);	// Get the length of the header
+					tcp_header.GetHeaderLength(length);	// Get the length of the header
 					length -= TCP_HEADER_LENGTH; // This is the amount of data being sent
 					Buffer &data = mux_packet.GetPayload().ExtractFront(length);
 					SockRequestResponse write(WRITE, (*cs).connection, data, length, EOK);
