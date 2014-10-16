@@ -117,11 +117,11 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
     
     if (timed_out) // If dealing with a timeout
     {
-        new_tcpheader.SetSeqNum(c_mapping.state.GetLastSent()+1, to_build);
+        new_tcpheader.SetSeqNum(1, to_build);
     }
     else // Not responding to a timeout
     {
-        new_tcpheader.SetSeqNum(c_mapping.state.GetLastSent(), to_build);
+        new_tcpheader.SetSeqNum(1, to_build); // TODO change this....
     }
     
     new_tcpheader.RecomputeChecksum(to_build);
@@ -184,18 +184,18 @@ int main(int argc, char *argv[])
 
 
 
+
     cerr<< "Sending SYN packet" << endl;
     Packet envelope;
 
 
-    build_packet(envelope, c_mapping, SYN_RCVD, 0, false);	// Make the packet
-    MinetSend(mux, envelope);
+    //build_packet(envelope, c_mapping, SYN_RCVD, 0, false);	// Make the packet
+    //MinetSend(mux, envelope);
+    //cerr<< "SYN packet sent" << endl;
 
 
-    cerr<< "SYN packet sent" << endl;
-
-
-
+    SockRequestResponse req;	// Hold the request
+    SockRequestResponse reply;	// Hold the response
 
 
     while (MinetGetNextEvent(event, timeout) == 0)
@@ -204,9 +204,10 @@ int main(int argc, char *argv[])
         {
             if (event.handle == sock)
             {
-                /*// socket request or response has arrived
-                SockRequestResponse req;	// Hold the request
-                SockRequestResponse reply;	// Hold the response
+
+                printf("I'll never ever see this.\n");
+                // socket request or response has arrived
+
 
                 MinetReceive(sock, req);
                 Packet envelope;
@@ -229,10 +230,17 @@ int main(int argc, char *argv[])
 
                             clist.push_back(c_mapping); // Push the mapping on the back of the Connection List
 
-                            build_packet(envelope, c_mapping, SYN_SENT, 0, false);	// Make the packet
+                            printf("Building a SYN\n");
+
+                            build_packet(envelope, c_mapping, HEADERTYPE_SYN, 0, false);	// Make the packet
+
+
                             // Send the packet twice
                             //MinetSend(mux, envelope);
+                            MinetSend(mux, envelope); // TODO SHOULD THIS BE MUX???????
+                            sleep(1);
                             MinetSend(mux, envelope);
+                            printf("SENT A SYN\n");
 
                             //reply.type = STATUS;
                             //reply.connection = req.connection;
@@ -304,7 +312,7 @@ int main(int argc, char *argv[])
                         }
                     }
                 }
-                */
+
             }
             if (event.handle == mux)
             {
@@ -321,34 +329,31 @@ int main(int argc, char *argv[])
 
 
 
-                cerr<< "---------------A------------" << endl;
 
                 TCPHeader tcp_header;
                 tcp_header = mux_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet.
 
-                cerr<< "---------------B------------" << endl;
 
                 IPHeader ip_header;
                 ip_header = mux_packet.FindHeader(Headers::IPHeader);
 
-                cerr<< "---------------C------------" << endl;
 
                 unsigned char f;
 
-
-                cerr<< "---------------1------------" << endl;
 
                 Connection c;
                 ip_header.GetDestIP(c.src);
                 ip_header.GetSourceIP(c.dest);
                 ip_header.GetProtocol(c.protocol);
+
+
+
+
                 tcp_header.GetDestPort(c.srcport);
                 tcp_header.GetSourcePort(c.destport);
                 tcp_header.GetFlags(f); //	Assign f with flags received from TCP Header
 
-                cerr<< "---------------2------------" << endl;
-
-
+                printf("I'm seeing a flag of %d\n", f);
 
 
 
@@ -365,6 +370,13 @@ int main(int argc, char *argv[])
                     printf("You got a SYN - ACK\n");
                     SET_ACK(alerts);
                 }
+                else if (f == 20)
+                {
+                    printf("I don't care about your rules.\n");
+                    SET_SYN(alerts);
+                    SET_ACK(alerts);
+                }
+
                 else
                 {
                     printf("Something else\n");
@@ -380,121 +392,66 @@ int main(int argc, char *argv[])
 
 
                 IPHeader ih;
-                ih.SetProtocol(IP_PROTO_TCP);
-                ih.SetSourceIP("192.168.128.1");
-                ih.SetDestIP("192.168.128.1");
-                // push it onto the packet
-                to_send.PushFrontHeader(ih);
 
-                /*cerr<< "---------------4------------" << endl;
+                Connection con;
 
-                // PUSH FRONT IP
-                // PUSH BACK TCP
+                ConnectionList<TCPState>::iterator check_exists = clist.FindMatching(req.connection);
 
-                TCPHeader new_tcpheader = TCPHeader();
-
-                cerr<< "---------------4.0------------" << endl;
-
-                unsigned char result = 5;
-
-                //new_tcpheader.SetHeaderLen(result, to_send);
-
-                new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_send);
-
-
-                cerr<< "---------------4.1------------" << endl;
-
-
-
-                new_tcpheader.GetHeaderLen(result);
-
-                cerr<< "---------------4.2------------" << endl;
-
-                printf("The header is %d\n", result );
-
-                new_tcpheader.SetFlags(alerts, to_send);
-
-                cerr<< "---------------4.3------------" << endl;
-
-                to_send.PushBackHeader(new_tcpheader);
-
-                cerr<< "---------------5------------" << endl;
-
-                MinetSend(sock, to_send);
-
-                cerr<< "---------------6------------" << endl;*/
-
-
-                TCPHeader t;
-
-                t.SetSourcePort(5050, to_send);
-                t.SetDestPort(5050, to_send);
-                t.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_send);
-                t.SetWinSize(100, to_send);
-                t.SetFlags(f,to_send);
-                t.SetSeqNum(5,to_send);
-
-                to_send.PushBackHeader(t);
-
-                printf("PYSHED!!!NFDSAHDS!JFDS\n");
-
-
-                /*// ip packet has arrived!
-                cerr<< "---------------In the mux portion------------" << endl;
-
-                Packet mux_packet;
-
-                MinetReceive(mux, mux_packet);	// Receive packet
-
-
-
-                unsigned char alerts = 0; //f stands for flags.
-                unsigned char f;
-
-                unsigned int status;
-
-                unsigned short length = TCPHeader::EstimateTCPHeaderLength(mux_packet);
-                mux_packet.ExtractHeaderFromPayload<TCPHeader>(length);
-
-                //mux_packet.ExtractHeaderFromPayload<TCPHeader>(8);	// Extract Header from packet TODO 8 or length?
-
-                TCPHeader tcp_header;
-                tcp_header = mux_packet.FindHeader(Headers::TCPHeader);
-
-
-                IPHeader ip_header;
-                ip_header = mux_packet.FindHeader(Headers::IPHeader);
-
-                Connection c;
-                ip_header.GetDestIP(c.src);
-                ip_header.GetSourceIP(c.dest);
-                ip_header.GetProtocol(c.protocol);
-                tcp_header.GetDestPort(c.srcport);
-                tcp_header.GetSourcePort(c.destport);
-                tcp_header.GetFlags(f); //	Assign f with flags received from TCP Header
-
-                // Iterate through looking for this connection in the list
-                ConnectionList<TCPState>::iterator cs = clist.FindMatching(c);
-                if (cs != clist.end())
+                if(check_exists != clist.end())
                 {
-                    //tcp_header.GetHeaderLength(length);	// Get the length of the header
-                    //length -= TCP_HEADER_LENGTH; // find the start of the data segment
+                    printf("You've got a connection\n");
+                    con = check_exists->connection;
 
-                    //SockRequestResponse reply;
+                    // note that this is flipped around because
+                    // "source" is interepreted as "this machine"
+                    ih.GetDestIP(con.src);
+                    ih.GetSourceIP(con.dest);
+                    ih.GetProtocol(con.protocol);
+
+                    ih.SetProtocol(IP_PROTO_TCP);
+                    //ih.SetSourceIP("192.168.128.1");
+                    //ih.SetDestIP("192.168.42.5");
+                    // push it onto the packet
+                    to_send.PushFrontHeader(ih);
+
+                    TCPHeader t;
+                    t.SetSourcePort(con.srcport, to_send);
+                    t.SetDestPort(con.destport, to_send);
+                    t.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_send);
+                    t.SetWinSize(100, to_send);
+                    t.SetFlags(alerts,to_send);
+                    t.SetSeqNum(5,to_send);
+                    // push it onto the packet
+                    to_send.PushBackHeader(t);
 
 
-                    //SockRequestResponse write(WRITE, (*cs).connection, data, length, EOK);
+                    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 
-                    //Buffer empty;
-                    //reply.data = empty;
-                    //reply.connection = c;
-                    //reply.error = EOK;
+                    cerr << "\nIP: \n" << ih << endl;
 
-                    printf("We're here\n");
-                    //MinetSend(sock, reply);
+                    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+
+                    cerr << "\nTCP: \n" << t << endl;
+
+                    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 
 
-                    //MinetSend(sock, write);  */
+                    printf("Sending Packet\n");
+                    MinetSend(mux, to_send);
+                    printf("Packet Sent\n");
+
+
+                }
+                else
+                {
+                    printf("Couldn't see this.");
+                }
+
+
+
+
+
+
                 }
             }
 

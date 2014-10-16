@@ -26,8 +26,8 @@
       <file leaf-file-name="tcp_module.cc" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/TCP_1/tcp_module.cc">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.35545024" vertical-offset="5340" max-vertical-offset="7695">
-              <caret line="371" column="17" selection-start-line="371" selection-start-column="0" selection-end-line="371" selection-end-column="0" />
+            <state vertical-scroll-proportion="0.2890995" vertical-offset="5847" max-vertical-offset="7050">
+              <caret line="402" column="26" selection-start-line="402" selection-start-column="26" selection-end-line="402" selection-end-column="26" />
               <folding>
                 <element signature="e#223#244#0" expanded="true" />
               </folding>
@@ -233,10 +233,15 @@
         </state>
       </provider>
     </entry>
+    <entry file="appcode.project-settings://b894b838">
+      <provider selected="true" editor-type-id="AppCode.ProjectSettings">
+        <state />
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/TCP_1/tcp_module.cc">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.35545024" vertical-offset="5340" max-vertical-offset="7695">
-          <caret line="371" column="17" selection-start-line="371" selection-start-column="0" selection-end-line="371" selection-end-column="0" />
+        <state vertical-scroll-proportion="0.2890995" vertical-offset="5847" max-vertical-offset="7050">
+          <caret line="402" column="26" selection-start-line="402" selection-start-column="26" selection-end-line="402" selection-end-column="26" />
           <folding>
             <element signature="e#223#244#0" expanded="true" />
           </folding>
