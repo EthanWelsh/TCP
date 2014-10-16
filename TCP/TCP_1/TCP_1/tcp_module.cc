@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
                 cerr<< "---------------C------------" << endl;
 
                 unsigned char f;
-                unsigned char alerts = 0;
+
 
                 cerr<< "---------------1------------" << endl;
 
@@ -350,47 +350,93 @@ int main(int argc, char *argv[])
 
 
 
-                Packet to_send;
-                TCPHeader new_tcpheader;
 
 
-                switch(f)
+                unsigned char alerts = 0;
+
+                if(IS_SYN(f) && !IS_ACK(f)) // If it's just a SYN
                 {
-                    case HEADERTYPE_SYN:
-                        printf("WE HAVE A SYN IN THE HOUSE\n");
-
-                        SET_SYN(alerts);
-                        SET_ACK(alerts);
-                        break;
-
-                    case HEADERTYPE_SYNACK:
-                        printf("WE HAVE A SYN-ACK IN THE HERZEN\n");
-                        SET_ACK(alerts);
-                        break;
-
-                    case HEADERTYPE_ACK:
-                        printf("WE HAVE AN ACK IN THE HAUS\n");
-                        break;
-
-                    default:
-                        printf("Illegal alien-packets\n");
-                        break;
+                    printf("You got a SYN\n");
+                    SET_SYN(alerts);
+                    SET_ACK(alerts);
+                }
+                else if(IS_SYN(f) && IS_ACK(f)) // If it's a SYN-ACK
+                {
+                    printf("You got a SYN - ACK\n");
+                    SET_ACK(alerts);
+                }
+                else
+                {
+                    printf("Something else\n");
                 }
 
-                cerr<< "---------------3------------" << endl;
+
+                Buffer *b = new Buffer();
+                Packet to_send(*b);
+
+
+
+
+
+
+                IPHeader ih;
+                ih.SetProtocol(IP_PROTO_TCP);
+                ih.SetSourceIP("192.168.128.1");
+                ih.SetDestIP("192.168.128.1");
+                // push it onto the packet
+                to_send.PushFrontHeader(ih);
+
+                /*cerr<< "---------------4------------" << endl;
+
+                // PUSH FRONT IP
+                // PUSH BACK TCP
+
+                TCPHeader new_tcpheader = TCPHeader();
+
+                cerr<< "---------------4.0------------" << endl;
+
+                unsigned char result = 5;
+
+                //new_tcpheader.SetHeaderLen(result, to_send);
+
+                new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_send);
+
+
+                cerr<< "---------------4.1------------" << endl;
+
+
+
+                new_tcpheader.GetHeaderLen(result);
+
+                cerr<< "---------------4.2------------" << endl;
+
+                printf("The header is %d\n", result );
 
                 new_tcpheader.SetFlags(alerts, to_send);
 
-                cerr<< "---------------4------------" << endl;
+                cerr<< "---------------4.3------------" << endl;
+
                 to_send.PushBackHeader(new_tcpheader);
 
                 cerr<< "---------------5------------" << endl;
 
                 MinetSend(sock, to_send);
 
-                cerr<< "---------------6------------" << endl;
+                cerr<< "---------------6------------" << endl;*/
 
 
+                TCPHeader t;
+
+                t.SetSourcePort(5050, to_send);
+                t.SetDestPort(5050, to_send);
+                t.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_send);
+                t.SetWinSize(100, to_send);
+                t.SetFlags(f,to_send);
+                t.SetSeqNum(5,to_send);
+
+                to_send.PushBackHeader(t);
+
+                printf("PYSHED!!!NFDSAHDS!JFDS\n");
 
 
                 /*// ip packet has arrived!

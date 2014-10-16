@@ -26,8 +26,8 @@
       <file leaf-file-name="tcp_module.cc" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/TCP_1/tcp_module.cc">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-2.2969985" vertical-offset="4304" max-vertical-offset="7005">
-              <caret line="190" column="46" selection-start-line="190" selection-start-column="38" selection-end-line="190" selection-end-column="46" />
+            <state vertical-scroll-proportion="0.35545024" vertical-offset="5340" max-vertical-offset="7695">
+              <caret line="371" column="17" selection-start-line="371" selection-start-column="0" selection-end-line="371" selection-end-column="0" />
               <folding>
                 <element signature="e#223#244#0" expanded="true" />
               </folding>
@@ -52,9 +52,9 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="35" />
+    <option name="x" value="45" />
     <option name="y" value="23" />
-    <option name="width" value="1230" />
+    <option name="width" value="1235" />
     <option name="height" value="777" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
@@ -166,7 +166,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="35" y="23" width="1230" height="777" extended-state="0" />
+    <frame x="45" y="23" width="1235" height="777" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -235,8 +235,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/TCP_1/tcp_module.cc">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-2.2969985" vertical-offset="4304" max-vertical-offset="7005">
-          <caret line="190" column="46" selection-start-line="190" selection-start-column="38" selection-end-line="190" selection-end-column="46" />
+        <state vertical-scroll-proportion="0.35545024" vertical-offset="5340" max-vertical-offset="7695">
+          <caret line="371" column="17" selection-start-line="371" selection-start-column="0" selection-end-line="371" selection-end-column="0" />
           <folding>
             <element signature="e#223#244#0" expanded="true" />
           </folding>
