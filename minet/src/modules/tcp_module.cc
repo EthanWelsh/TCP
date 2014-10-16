@@ -91,9 +91,10 @@ int main(int argc, char * argv[]) {
 	      i++;
 	    }
 
-	    if (event.handle == sock) {
-		// socket request or response has arr		
-		printf("Socket request has arrived\n");
+	    if (event.handle == sock)
+        {
+		    // socket request or response has arr
+		    printf("Socket request has arrived\n");
 	    }
 	}
 
