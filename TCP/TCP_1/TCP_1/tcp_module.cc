@@ -168,19 +168,31 @@ int main(int argc, char *argv[])
     double timeout = 1;
 
 
-    /*
 
+
+
+
+
+    /*
     SEND THE SYN PACKET ------------
     If in client mode
-
-
-
-
-
-
-
      */
 
+
+    ConnectionToStateMapping<TCPState> c_mapping;
+
+
+
+
+    cerr<< "Sending SYN packet" << endl;
+    Packet envelope;
+
+
+    build_packet(envelope, c_mapping, SYN_RCVD, 0, false);	// Make the packet
+    MinetSend(mux, envelope);
+
+
+    cerr<< "SYN packet sent" << endl;
 
 
 
@@ -192,7 +204,7 @@ int main(int argc, char *argv[])
         {
             if (event.handle == sock)
             {
-                // socket request or response has arrived
+                /*// socket request or response has arrived
                 SockRequestResponse req;	// Hold the request
                 SockRequestResponse reply;	// Hold the response
 
@@ -292,10 +304,96 @@ int main(int argc, char *argv[])
                         }
                     }
                 }
+                */
             }
             if (event.handle == mux)
             {
-                // ip packet has arrived!
+
+                cerr<< "---------------In the mux portion------------" << endl;
+
+                Packet mux_packet;
+
+                MinetReceive(mux, mux_packet);	// Receive packet
+
+
+                unsigned short length = TCPHeader::EstimateTCPHeaderLength(mux_packet);
+                mux_packet.ExtractHeaderFromPayload<TCPHeader>(length);
+
+
+
+                cerr<< "---------------A------------" << endl;
+
+                TCPHeader tcp_header;
+                tcp_header = mux_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet.
+
+                cerr<< "---------------B------------" << endl;
+
+                IPHeader ip_header;
+                ip_header = mux_packet.FindHeader(Headers::IPHeader);
+
+                cerr<< "---------------C------------" << endl;
+
+                unsigned char f;
+                unsigned char alerts = 0;
+
+                cerr<< "---------------1------------" << endl;
+
+                Connection c;
+                ip_header.GetDestIP(c.src);
+                ip_header.GetSourceIP(c.dest);
+                ip_header.GetProtocol(c.protocol);
+                tcp_header.GetDestPort(c.srcport);
+                tcp_header.GetSourcePort(c.destport);
+                tcp_header.GetFlags(f); //	Assign f with flags received from TCP Header
+
+                cerr<< "---------------2------------" << endl;
+
+
+
+                Packet to_send;
+                TCPHeader new_tcpheader;
+
+
+                switch(f)
+                {
+                    case HEADERTYPE_SYN:
+                        printf("WE HAVE A SYN IN THE HOUSE\n");
+
+                        SET_SYN(alerts);
+                        SET_ACK(alerts);
+                        break;
+
+                    case HEADERTYPE_SYNACK:
+                        printf("WE HAVE A SYN-ACK IN THE HERZEN\n");
+                        SET_ACK(alerts);
+                        break;
+
+                    case HEADERTYPE_ACK:
+                        printf("WE HAVE AN ACK IN THE HAUS\n");
+                        break;
+
+                    default:
+                        printf("Illegal alien-packets\n");
+                        break;
+                }
+
+                cerr<< "---------------3------------" << endl;
+
+                new_tcpheader.SetFlags(alerts, to_send);
+
+                cerr<< "---------------4------------" << endl;
+                to_send.PushBackHeader(new_tcpheader);
+
+                cerr<< "---------------5------------" << endl;
+
+                MinetSend(sock, to_send);
+
+                cerr<< "---------------6------------" << endl;
+
+
+
+
+                /*// ip packet has arrived!
                 cerr<< "---------------In the mux portion------------" << endl;
 
                 Packet mux_packet;
@@ -350,10 +448,10 @@ int main(int argc, char *argv[])
                     //MinetSend(sock, reply);
 
 
-                    //MinetSend(sock, write);
+                    //MinetSend(sock, write);  */
                 }
             }
-        }
+
         if (event.eventtype == MinetEvent::Timeout)
         {
             // timeout ! probably need to resend some packets
