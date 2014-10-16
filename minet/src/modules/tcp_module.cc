@@ -21,18 +21,23 @@
 
 #include <string.h>
 #include<list>
-#include "tcpstate.h"
 #include "Minet.h"
+#include "packet.h"
+#include "buffer.h"
+#include "ip.h"
+#include "tcp.h"
+#include "tcpstate.h"
+#include "tcpstate.cc"
 
 using namespace std;
 
-static const int SYN = 1;
-static const int ACK = 2;
-static const int SYN_ACK = 3;
-static const int PSH_ACK = 4;
-static const int FIN = 5;
-static const int FIN_ACK = 6;
-static const int RST = 7;
+static const int HEADERTYPE_SYN = 1;
+static const int HEADERTYPE_ACK = 2;
+static const int HEADERTYPE_SYNACK = 3;
+static const int HEADERTYPE_PSHACK = 4;
+static const int HEADERTYPE_FIN = 5;
+static const int HEADERTYPE_FINACK = 6;
+static const int HEADERTYPE_RST = 7;
 
 struct TCPState
 {
@@ -65,8 +70,73 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
 	new_tcpheader.SetAckNum(c_mapping.state.GetLastRecvd(),to_build);
 	new_tcpheader.SetWinSize(c_mapping.state.GetRwnd(), to_build);
 	new_tcpheader.SetUrgentPtr(0, to_build);
-}
+	
+	// Determine the flag type
+	switch (TCPHeaderType)
+	{
+		case HEADERTYPE_SYN:
+			SET_SYN(alerts);
+			cerr << "It is a HEADERTYPE_SYN!" << endl;
+			break;
 
+		case HEADERTYPE_ACK:
+			SET_ACK(alerts);
+			cerr << "It is a HEADERTYPE_ACK!" << endl;
+			break;
+
+		case HEADERTYPE_SYNACK:
+			SET_ACK(alerts);
+			SET_SYN(alerts);
+			cerr << "It is a HEADERTYPE_SYNACK!" << endl;
+			break;
+                
+		case HEADERTYPE_PSHACK:
+			SET_PSH(alerts);
+			SET_ACK(alerts);
+			cerr << "It is a HEADERTYPE_PSHACK!" << endl;
+			break;
+
+		case HEADERTYPE_FIN:
+			SET_FIN(alerts);
+			cerr << "It is a HEADERTYPE_FIN!" << endl;
+			break;
+
+		case HEADERTYPE_FINACK:
+			SET_FIN(alerts);
+			SET_ACK(alerts);
+			cerr << "It is a HEADERTYPE_FINACK!" << endl;
+			break;
+
+		case HEADERTYPE_RST:
+			SET_RST(alerts);
+			cerr << "It is a HEADERTYPE_RST!" << endl;
+			break;
+                
+		default:
+			break;
+	}
+        
+	// Set the flag
+	tcpheader_new.SetFlags(alerts, to_build);
+	
+	// Print out the finished TCP header for testing
+	cerr << "\nnew_tcpheader: \n" << new_tcpheader<< endl;
+	
+	if (isTimeout) // If dealing with a timeout
+	{ 
+		new_tcpheader.SetSeqNum(c_mapping.state.GetLastSent()+1, to_build);
+	}
+	else // Not responding to a timeout
+	{ 
+		new_tcpheader.SetSeqNum(c_mapping.state.GetLastSent(), to_build);
+	}
+	
+	new_tcpheader.RecomputeChecksum(to_build);
+	
+	// Push the header into the packet
+	to_build.PushBackHeader(new_tcpheader);
+	cerr<< "---------------Packet is built------------" << endl;
+}
 
 int main(int argc, char *argv[])
 {
@@ -214,70 +284,47 @@ int main(int argc, char *argv[])
 			}
 			if (event.handle == mux)
 			{
-                    // ip packet has arrived!
+				// ip packet has arrived!
+				cerr<< "---------------In the mux portion------------" << endl;
 
-                    /*
-                     * then within the (event.handle == mux) triggers whenever you receive a packet
-                     *
-                     * I check my ConnecitonList clist if I have the connection (which I should)
-                     *
-                     * extract the state.  check to see which state it is in using a switch statement (i.e. LISTEN state)
-                     *
-                     * Then I respond to the handshake (parse the packet using TCPHeader and IPHeader classes.  similar
-                     *  to how udp_module does it)
-                     *
-                     * check to make sure its a SYN packet
-                     *
-                     * if it is, I construct my own SYN-ACK packet
-                     *
-                     * then I use MinetSent() to send it to the socket to forward along
-                     *
-                     * so as far as I understand it, you have two main tasks.  1 if statement that handles all socket
-                     * changes (connect, accept, close, etc.)  and one if statement that handles packets (mux)
-                     *
-                     *
-                     */
+                Packet mux_packet;
+				unsigned short length;
+				bool checksum_matches;
+				unsigned char alerts = 0; //f stands for flags.
+				unsigned int status;
+				
+				MinetReceive(mux, mux_packet);	// Receive packet
+				mux_packet.ExtractHeaderFromPayload<TCPHeader>(8);	// Extract Header from packet
+				TCPHeader tcp_header;
+				tcp_header== mux_packet.FindHeader(Headers::TCPHeader);
+				checksum_matches= tcp_header.IsCorrectChecksum(mux_packet);	// Verify the checksum matches
+				
+				IPHeader ip_header;
+				ip_header = p.FindHeader(Headers::IPHeader);
 
+				Connection c;
+				ip_header.GetDestIP(c.src);
+				ip_header.GetSourceIP(c.dest);
+				ip_header.GetProtocol(c.protocol);
+				tcp_header.GetDestPort(c.srcport);
+				tcp_header.GetSourcePort(c.destport);
+				tcp_header.GetFlags(f); //	Assign f with flags received from TCP Header
+	
+				// Iterate through looking for this connection in the list
+				ConnectionList<TCPState>::iterator cs = clist.FindMatching(c);
+				if (cs != clist.end())
+				{
+					tcp_header.GetLength(length);	// Get the length of the header
+					length -= TCP_HEADER_LENGTH; // This is the amount of data being sent
+					Buffer &data = mux_packet.GetPayload().ExtractFront(length);
+					SockRequestResponse write(WRITE, (*cs).connection, data, length, EOK);
 
-                    Packet p;
-                    unsigned short len = TCPHeader::EstimateTCPHeaderLength(p);
-
-                    bool checksumok;
-                    MinetReceive(mux, p);
-
-                    p.ExtractHeaderFromPayload<TCPHeader>(8);
-
-                    TCPHeader tcph;
-                    tcph = p.FindHeader(Headers::TCPHeader);
-
-                    checksumok = tcph.IsCorrectChecksum(p);
-
-                    IPHeader iph;
-                    iph = p.FindHeader(Headers::IPHeader);
-
-                    Connection c;
-                    // note that this is flipped around because
-                    // "source" is interepreted as "this machine"
-                    iph.GetDestIP(c.src);
-                    iph.GetSourceIP(c.dest);
-                    iph.GetProtocol(c.protocol);
-                    tcph.GetDestPort(c.srcport);
-                    tcph.GetSourcePort(c.destport);
-                    ConnectionList<TCPState>::iterator cs = clist.FindMatching(c);
-
-                    if (cs != clist.end())
-                    {
-                        tcph.GetLength(len);
-                        len -= TCP_HEADER_LENGTH;
-                        Buffer &data = p.GetPayload().ExtractFront(len);
-                        SockRequestResponse write(WRITE, (*cs).connection, data, len, EOK);
-
-                        if (!checksumok)
-                        {
-                            MinetSendToMonitor(MinetMonitoringEvent("forwarding packet to sock even though checksum failed"));
-                        }
-                        MinetSend(sock, write);
-                    }
+					if (!checksumok)
+					{
+						MinetSendToMonitor(MinetMonitoringEvent("forwarding packet to sock even though checksum failed"));
+					}
+					MinetSend(sock, write);
+				}
 			}
 		}
 		if (event.eventtype == MinetEvent::Timeout)
