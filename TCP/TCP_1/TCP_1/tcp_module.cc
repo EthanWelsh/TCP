@@ -404,9 +404,20 @@ int main(int argc, char *argv[])
 
                     // note that this is flipped around because
                     // "source" is interepreted as "this machine"
-                    ih.GetDestIP(con.src);
-                    ih.GetSourceIP(con.dest);
-                    ih.GetProtocol(con.protocol);
+
+                    printf("*****************************************************\n");
+
+
+                    cerr << "\n~CONNECTION~: \n" << con << endl;
+
+                    printf("*****************************************************\n");
+
+                    ih.SetDestIP(con.src);
+                    ih.SetSourceIP(con.dest);
+                    ih.SetProtocol(con.protocol);
+
+
+
 
                     ih.SetProtocol(IP_PROTO_TCP);
                     //ih.SetSourceIP("192.168.128.1");
