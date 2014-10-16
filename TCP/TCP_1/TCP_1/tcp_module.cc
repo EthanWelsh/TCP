@@ -167,6 +167,25 @@ int main(int argc, char *argv[])
     MinetEvent event;
     double timeout = 1;
 
+
+    /*
+
+    SEND THE SYN PACKET ------------
+    If in client mode
+
+
+
+
+
+
+
+     */
+
+
+
+
+
+
     while (MinetGetNextEvent(event, timeout) == 0)
     {
         if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
@@ -187,13 +206,12 @@ int main(int argc, char *argv[])
                     {
                         case CONNECT:
                         {
-                            cerr<< "Working on the connection\n" <<endl;
+                            printf("ESTABLISHING A CONNECTION\n");
                             // Build a state -- initialSequenceNum, state, timertries
-                            TCPState curr= TCPState(1, 0, 3);
+                            TCPState curr= TCPState(0, SYN_SENT, 3);
                             // Link connection and curr state
                             ConnectionToStateMapping<TCPState> c_mapping;
                             c_mapping.connection= req.connection;	// Update map connection
-                            c_mapping.timeout = Time()+2;	// Update map timeout value
                             c_mapping.state= curr;	// Update map state
                             c_mapping.bTmrActive= true;
 
@@ -201,51 +219,50 @@ int main(int argc, char *argv[])
 
                             build_packet(envelope, c_mapping, SYN_SENT, 0, false);	// Make the packet
                             // Send the packet twice
-                            MinetSend(mux, envelope);
+                            //MinetSend(mux, envelope);
                             MinetSend(mux, envelope);
 
-                            reply.type = STATUS;
-                            reply.connection = req.connection;
-                            reply.bytes = 0;
-                            reply.error = EOK;
-                            MinetSend(sock, reply);
+                            //reply.type = STATUS;
+                            //reply.connection = req.connection;
+                            //reply.bytes = 0;
+                            //reply.error = EOK;
+                            //MinetSend(sock, reply);
                         }
                             break;
                         case ACCEPT:
-                        { /*
-							reply.type = STATUS;
-							reply.connection = req.connection;
-							// buffer is zero bytes
-							reply.bytes = 0;
-							reply.error = EOK;
+                        {
+                            printf("ACCEPTING A CONNECTION\n");
+                            Buffer empty;
+                            reply.type= STATUS;
+                            reply.error = EOK;
+                            reply.data = empty;
+                            reply.bytes = 0;
+                            ConnectionToStateMapping<TCPState> c_mapping;
 
-							// **** CREATE SOCKET ****
-							//ConnectionToStateMapping <TCPDriver> m = new ConnectionToStateMapping<TCPDriver>();
-							//m.connection = req.connection;
+                            Connection c;
+                            c.src = MyIPAddr();
+                            c.dest = IPAddress(req.connection.src);
+                            c.protocol = IP_PROTO_TCP;
+                            c.srcport = req.connection.srcport;
+
+                            c_mapping.connection= c;// Update map connection
 
 
-							TCPDriver tstate = new TCPDriver(req.connection.src, req.connection.dest, req.connection.srcport, LISTEN);
+                            TCPState curr= TCPState(1, LISTEN, 3);
+                            c_mapping.state= curr;	// Update map state
 
-							Connection connect = new Connection();
 
-							connect.src = MyIPAddr();
-							connect.dest = IPAddress(req.connection.src);
-							connect.protocol = IP_PROTO_TCP;
-							connect.srcport = req.connection.srcport;
-							connect.destport = req.connection.destport; // TODO should this be 0?
 
-							ConnectionToStateMapping <TCPDriver> m = new ConnectionToStateMapping<TCPDriver>();
-							m.connection = connect;
-							m.state = tstate;
-							clist.push_back(m);
+                            reply.connection = c;
+                            MinetSend(sock, reply);
+
+
+                            //	Assign f with flags received from TCP Header
 
 							// ***********************
-
-
 							// **** CREATE
 
-
-							MinetSend(sock, reply);*/
+							MinetSend(sock, reply);
                             break;
                         }
 
@@ -295,10 +312,8 @@ int main(int argc, char *argv[])
                 unsigned short length = TCPHeader::EstimateTCPHeaderLength(mux_packet);
                 mux_packet.ExtractHeaderFromPayload<TCPHeader>(length);
 
+                //mux_packet.ExtractHeaderFromPayload<TCPHeader>(8);	// Extract Header from packet TODO 8 or length?
 
-
-
-                mux_packet.ExtractHeaderFromPayload<TCPHeader>(8);	// Extract Header from packet
                 TCPHeader tcp_header;
                 tcp_header = mux_packet.FindHeader(Headers::TCPHeader);
 
@@ -318,7 +333,7 @@ int main(int argc, char *argv[])
                 ConnectionList<TCPState>::iterator cs = clist.FindMatching(c);
                 if (cs != clist.end())
                 {
-                    //tcp_header.GetHeaderLength(length);	// Get the length of the header TODO I MESSED WITH THIS A LOT
+                    //tcp_header.GetHeaderLength(length);	// Get the length of the header
                     //length -= TCP_HEADER_LENGTH; // find the start of the data segment
 
                     //SockRequestResponse reply;
