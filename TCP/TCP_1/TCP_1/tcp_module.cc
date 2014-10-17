@@ -343,56 +343,37 @@ int main(int argc, char *argv[])
 
                 unsigned char f;	// To hold the flags from the packet
 
-				
+
                 Connection c;
                 ip_header.GetDestIP(c.src);
                 ip_header.GetSourceIP(c.dest);
                 ip_header.GetProtocol(c.protocol);
-
-
-
-
-                tcp_header.GetDestPort(c.srcport);
+				tcp_header.GetDestPort(c.srcport);
                 tcp_header.GetSourcePort(c.destport);
                 tcp_header.GetFlags(f); //	Assign f with flags received from TCP Header
-
+	
                 printf("I'm seeing a flag of %d\n", f);
-
-
 
                 unsigned char alerts = 0;
 
-                if(IS_SYN(f) && !IS_ACK(f)) // If it's just a SYN
+                if(f==20) // If it's just a SYN packet
                 {
                     printf("You got a SYN\n");
-                    SET_SYN(alerts);
-                    SET_ACK(alerts);
+                    //SET_SYN(alerts);
+                    //SET_ACK(alerts);
                 }
                 else if(IS_SYN(f) && IS_ACK(f)) // If it's a SYN-ACK
                 {
                     printf("You got a SYN - ACK\n");
-                    SET_ACK(alerts);
+                    //SET_ACK(alerts);
                 }
-                else if (f == 20)
-                {
-                    printf("I don't care about your rules.\n");
-                    SET_SYN(alerts);
-                    SET_ACK(alerts);
-                }
-
                 else
                 {
-                    printf("Something else\n");
+                    printf("We got something else\n");
                 }
-
-
+				/*
                 Buffer *b = new Buffer();
                 Packet to_send(*b);
-
-
-
-
-
 
                 IPHeader ih;
 
@@ -459,7 +440,7 @@ int main(int argc, char *argv[])
                 else
                 {
                     printf("Couldn't see this.");
-                }
+                }*/
 			}
             if (event.eventtype == MinetEvent::Timeout)
 			{
