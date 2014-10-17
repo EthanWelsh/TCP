@@ -45,7 +45,7 @@ static const int HEADERTYPE_RST = 7;
 void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mapping, int HeaderType, int data_amount, bool timed_out)
 {
     cerr<< "---------------Building a packet to send off------------" << endl;
-    unsigned char alerts = 0;
+    unsigned char alerts = 0;	
     int packet_size = data_amount + TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
     IPHeader new_ipheader;
     TCPHeader new_tcpheader;
@@ -63,7 +63,7 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
     new_tcpheader.SetAckNum(c_mapping.state.GetLastRecvd(),to_build);
     new_tcpheader.SetWinSize(c_mapping.state.GetRwnd(), to_build);
     new_tcpheader.SetUrgentPtr(0, to_build);
-    
+	
     // Determine the flag type
     switch (HeaderType)
     {
@@ -134,6 +134,7 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
 
 int main(int argc, char *argv[])
 {
+	// This was all included in the code
     MinetHandle mux;    // Mutex to ensure not preempted
     MinetHandle sock;    // Socket
 
@@ -153,47 +154,60 @@ int main(int argc, char *argv[])
         MinetSendToMonitor(MinetMonitoringEvent("Can't connect to ip_mux"));
         return -1;
     }
-
-    if ((sock == MINET_NOHANDLE) && (MinetIsModuleInConfig(MINET_SOCK_MODULE)))
+	if ((sock == MINET_NOHANDLE) && (MinetIsModuleInConfig(MINET_SOCK_MODULE)))
     {
         MinetSendToMonitor(MinetMonitoringEvent("Can't accept from sock_module"));
         return -1;
     }
-
     cerr << "tcp_module STUB VERSION handling tcp traffic.......\n"<< endl;
-
     MinetSendToMonitor(MinetMonitoringEvent("tcp_module STUB VERSION handling tcp traffic........"));
-
     MinetEvent event;
     double timeout = 1;
+	ConnectionToStateMapping<TCPState> c_mapping;
+	// End what was given for the moment
 
-
-
-
-
-
-
-    /*
-    SEND THE SYN PACKET ------------
-    If in client mode
-     */
-
-
-    ConnectionToStateMapping<TCPState> c_mapping;
-
-
-
-
-
-    cerr<< "Sending SYN packet" << endl;
-    Packet envelope;
-
-
-    //build_packet(envelope, c_mapping, SYN_RCVD, 0, false);	// Make the packet
-    //MinetSend(mux, envelope);
-    //cerr<< "SYN packet sent" << endl;
-
-
+	// Send a SYN packet in client mode
+	cerr<< "---------------Building a packet to send off------------" << endl;
+    Packet envelope; // Declare the packet
+	unsigned char alerts = 0; 	// Alerts are flags for the packet being sent
+    int packet_size = TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
+    IPHeader new_ipheader;	// Holds the IP Header
+    TCPHeader new_tcpheader;	// Holds the TCP Header
+    new_ipheader.SetSourceIP("192.168.128.1");	// Set the source IP --- my IP Address
+    new_ipheader.SetDestIP("192.168.42.5");	// Set the destination IP --- NETLAB-3
+    new_ipheader.SetTotalLength(packet_size);	 // Total length of the packet being sent off
+    new_ipheader.SetProtocol(IP_PROTO_TCP);	// Set protocol to TCP
+    envelope.PushFrontHeader(new_ipheader);	// Add the IPHeader into the packet
+    cerr<< "---------------------------------" << endl;
+	cerr << "\n new_ipheader: \n" << new_ipheader << endl;	// Print the header for testing and Part 1
+    cerr<< "---------------------------------" << endl;
+    new_tcpheader.SetSourcePort("192.168.128.1");
+    new_tcpheader.SetDestPort("192.168.42.5");
+    new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, envelope);
+    
+    new_tcpheader.SetAckNum(1, envelope);
+    new_tcpheader.SetWinSize(100, envelope);
+    new_tcpheader.SetUrgentPtr(0, envelope);
+    
+	SET_SYN(alerts); // Set the flag that this is a SYN packet
+	new_tcpheader.SetFlags(alerts, envelope);	// Set the flag in the header
+    
+    // Print out the finished TCP header for testing
+    cerr<< "---------------------------------" << endl;
+	cerr << "\new_tcpheader: \n" << new_tcpheader<< endl;
+    cerr<< "---------------------------------" << endl;
+    
+    new_tcpheader.RecomputeChecksum(envelope);
+    
+    to_build.PushBackHeader(new_tcpheader);		// Push the header into the packet
+    cerr<< "---------------Packet is built------------" << endl;
+	
+	cerr<< "---------------Sending the Packet------------" << endl;
+	MinetSend(mux, envelope); // Send the packet to mux
+	sleep(1);
+	MinetSend(mux, envelope);
+	cerr<< "---------------Packet has been sent------------" << endl;
+	
     SockRequestResponse req;	// Hold the request
     SockRequestResponse reply;	// Hold the response
 
@@ -204,11 +218,9 @@ int main(int argc, char *argv[])
         {
             if (event.handle == sock)
             {
-
-                printf("I'll never ever see this.\n");
+                printf("Well... I am in the Sock... Is it good or bad?\n");
                 // socket request or response has arrived
-
-
+				/*
                 MinetReceive(sock, req);
                 Packet envelope;
                 // Check to see if the connection exists
@@ -312,25 +324,18 @@ int main(int argc, char *argv[])
                         }
                     }
                 }
-
+				*/
             }
             if (event.handle == mux)
             {
-
-                cerr<< "---------------In the mux portion------------" << endl;
-
-                Packet mux_packet;
-
+                cerr<< "---------------Welcome to the mux portion------------" << endl;
+                Packet mux_packet;	// Receipt packet
                 MinetReceive(mux, mux_packet);	// Receive packet
 
+				unsigned short length = TCPHeader::EstimateTCPHeaderLength(mux_packet);	// Estimate length
+                mux_packet.ExtractHeaderFromPayload<TCPHeader>(length);	// Get the Header from the packet
 
-                unsigned short length = TCPHeader::EstimateTCPHeaderLength(mux_packet);
-                mux_packet.ExtractHeaderFromPayload<TCPHeader>(length);
-
-
-
-
-                TCPHeader tcp_header;
+                TCPHeader tcp_header;	// For storing the TCP header
                 tcp_header = mux_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet.
 
 
