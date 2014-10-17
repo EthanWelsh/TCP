@@ -181,8 +181,8 @@ int main(int argc, char *argv[])
     cerr<< "---------------------------------" << endl;
 	cerr << "\n new_ipheader: \n" << new_ipheader << endl;	// Print the header for testing and Part 1
     cerr<< "---------------------------------" << endl;
-    new_tcpheader.SetSourcePort("192.168.128.1");
-    new_tcpheader.SetDestPort("192.168.42.5");
+    new_tcpheader.SetSourcePort(5050, envelope);
+    new_tcpheader.SetDestPort(5050, envelope);
     new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, envelope);
     
     new_tcpheader.SetAckNum(1, envelope);
