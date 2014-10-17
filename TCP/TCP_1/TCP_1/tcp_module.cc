@@ -354,7 +354,7 @@ int main(int argc, char *argv[])
 	
                 printf("I'm seeing a flag of %d\n", f);
 
-                if(f==20) // If it's just a SYN packet
+                if(IS_SYN(f) && !IS_ACK(f)) // If it's just a SYN packet
                 {
                     printf("You got a SYN\n");
                     //SET_SYN(alerts);
