@@ -134,6 +134,7 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
 
 int main(int argc, char *argv[])
 {
+	bool isClient=true;
 	// This was all included in the code
     MinetHandle mux;    // Mutex to ensure not preempted
     MinetHandle sock;    // Socket
@@ -166,48 +167,50 @@ int main(int argc, char *argv[])
 	ConnectionToStateMapping<TCPState> c_mapping;
 	// End what was given for the moment
 
-	// Send a SYN packet in client mode
-	cerr<< "---------------Building a packet to send off------------" << endl;
-    Packet envelope; // Declare the packet
-	unsigned char alerts = 0; 	// Alerts are flags for the packet being sent
-    int packet_size = TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
-    IPHeader new_ipheader;	// Holds the IP Header
-    TCPHeader new_tcpheader;	// Holds the TCP Header
-    new_ipheader.SetSourceIP("192.168.128.1");	// Set the source IP --- my IP Address
-    new_ipheader.SetDestIP("192.168.42.5");	// Set the destination IP --- NETLAB-3
-    new_ipheader.SetTotalLength(packet_size);	 // Total length of the packet being sent off
-    new_ipheader.SetProtocol(IP_PROTO_TCP);	// Set protocol to TCP
-    envelope.PushFrontHeader(new_ipheader);	// Add the IPHeader into the packet
-    cerr<< "---------------------------------" << endl;
-	cerr << "\n new_ipheader: \n" << new_ipheader << endl;	// Print the header for testing and Part 1
-    cerr<< "---------------------------------" << endl;
-    new_tcpheader.SetSourcePort(5050, envelope);
-    new_tcpheader.SetDestPort(5050, envelope);
-    new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, envelope);
-    
-    new_tcpheader.SetAckNum(1, envelope);
-    new_tcpheader.SetWinSize(100, envelope);
-    new_tcpheader.SetUrgentPtr(0, envelope);
-    
-	SET_SYN(alerts); // Set the flag that this is a SYN packet
-	new_tcpheader.SetFlags(alerts, envelope);	// Set the flag in the header
-    
-    // Print out the finished TCP header for testing
-    cerr<< "---------------------------------" << endl;
-	cerr << "\new_tcpheader: \n" << new_tcpheader<< endl;
-    cerr<< "---------------------------------" << endl;
-    
-    new_tcpheader.RecomputeChecksum(envelope);
-    
-    envelope.PushBackHeader(new_tcpheader);		// Push the header into the packet
-    cerr<< "---------------Packet is built------------" << endl;
-	
-	cerr<< "---------------Sending the Packet------------" << endl;
-	MinetSend(mux, envelope); // Send the packet to mux
-	sleep(1);
-	MinetSend(mux, envelope);
-	cerr<< "---------------Packet has been sent------------" << endl;
-	
+	if(isClient)
+	{
+		// Send a SYN packet in client mode
+		cerr<< "---------------Building a packet to send off------------" << endl;
+		Packet envelope; // Declare the packet
+		unsigned char alerts = 0; 	// Alerts are flags for the packet being sent
+		int packet_size = TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
+		IPHeader new_ipheader;	// Holds the IP Header
+		TCPHeader new_tcpheader;	// Holds the TCP Header
+		new_ipheader.SetSourceIP("192.168.128.1");	// Set the source IP --- my IP Address
+		new_ipheader.SetDestIP("192.168.42.5");	// Set the destination IP --- NETLAB-3
+		new_ipheader.SetTotalLength(packet_size);	 // Total length of the packet being sent off
+		new_ipheader.SetProtocol(IP_PROTO_TCP);	// Set protocol to TCP
+		envelope.PushFrontHeader(new_ipheader);	// Add the IPHeader into the packet
+		cerr<< "---------------------------------" << endl;
+		cerr << "\n new_ipheader: \n" << new_ipheader << endl;	// Print the header for testing and Part 1
+		cerr<< "---------------------------------" << endl;
+		new_tcpheader.SetSourcePort(5050, envelope);
+		new_tcpheader.SetDestPort(5050, envelope);
+		new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, envelope);
+		
+		new_tcpheader.SetAckNum(1, envelope);
+		new_tcpheader.SetWinSize(100, envelope);
+		new_tcpheader.SetUrgentPtr(0, envelope);
+		
+		SET_SYN(alerts); // Set the flag that this is a SYN packet
+		new_tcpheader.SetFlags(alerts, envelope);	// Set the flag in the header
+		
+		// Print out the finished TCP header for testing
+		cerr<< "---------------------------------" << endl;
+		cerr << "\new_tcpheader: \n" << new_tcpheader<< endl;
+		cerr<< "---------------------------------" << endl;
+		
+		new_tcpheader.RecomputeChecksum(envelope);
+		
+		envelope.PushBackHeader(new_tcpheader);		// Push the header into the packet
+		cerr<< "---------------Packet is built------------" << endl;
+		
+		cerr<< "---------------Sending the Packet------------" << endl;
+		MinetSend(mux, envelope); // Send the packet to mux
+		sleep(1);
+		MinetSend(mux, envelope);
+		cerr<< "---------------Packet has been sent------------" << endl;
+	}
     SockRequestResponse req;	// Hold the request
     SockRequestResponse reply;	// Hold the response
 
@@ -363,8 +366,6 @@ int main(int argc, char *argv[])
                 }
 				
 				Packet to_send;
-
-
 
 				TCPHeader new_tcphead;	// Holds the TCP Header
 				to_send.PushFrontHeader(new_ipheader);	// Add the IPHeader into the packet
