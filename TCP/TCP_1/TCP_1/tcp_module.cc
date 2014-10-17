@@ -343,40 +343,58 @@ int main(int argc, char *argv[])
 
                 unsigned char f;	// To hold the flags from the packet
 
-
-                Connection c;
-                ip_header.GetDestIP(c.src);
-                ip_header.GetSourceIP(c.dest);
-                ip_header.GetProtocol(c.protocol);
-				tcp_header.GetDestPort(c.srcport);
-                tcp_header.GetSourcePort(c.destport);
                 tcp_header.GetFlags(f); //	Assign f with flags received from TCP Header
-	
-                printf("I'm seeing a flag of %d\n", f);
 
                 if(IS_SYN(f) && !IS_ACK(f)) // If it's just a SYN packet
                 {
                     printf("You got a SYN\n");
-                    //SET_SYN(alerts);
-                    //SET_ACK(alerts);
+                    SET_SYN(alerts);
+                    SET_ACK(alerts);
                 }
                 else if(IS_SYN(f) && IS_ACK(f)) // If it's a SYN-ACK
                 {
                     printf("You got a SYN - ACK\n");
-                    //SET_ACK(alerts);
+                    SET_ACK(alerts);
                 }
                 else
                 {
                     printf("We got something else\n");
                 }
+				
+				Packet to_send;
+				
+				TCPHeader new_tcphead;	// Holds the TCP Header
+				to_send.PushFrontHeader(ipheader);	// Add the IPHeader into the packet
+				cerr<< "---------------------------------" << endl;
+				cerr << "\n new_ipheader: \n" << new_ipheader << endl;	// Print the header for testing and Part 1
+				cerr<< "---------------------------------" << endl;
+				new_tcphead.SetSourcePort(5050, to_send);
+				new_tcphead.SetDestPort(5050, to_send);
+				new_tcphead.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_send);
+    
+				new_tcphead.SetAckNum(1, to_send);
+				new_tcphead.SetWinSize(100, to_send);
+				new_tcphead.SetUrgentPtr(0, to_send);
+    
+				new_tcphead.SetFlags(alerts, to_send);	// Set the flag in the header
+				
+				// Print out the finished TCP header for testing
+				cerr<< "---------------------------------" << endl;
+				cerr << "\new_tcpheader: \n" << new_tcphead<< endl;
+				cerr<< "---------------------------------" << endl;
+				
+				new_tcphead.RecomputeChecksum(to_send);
+				
+				to_send.PushBackHeader(new_tcphead);		// Push the header into the packet
+				
+				printf("Sending Packet\n");
+				MinetSend(mux, to_send);
+				printf("Packet Sent\n");
 				/*
                 Buffer *b = new Buffer();
                 Packet to_send(*b);
 
-                IPHeader ih;
-
                 Connection con;
-
                 ConnectionList<TCPState>::iterator check_exists = clist.FindMatching(req.connection);
 
                 if(check_exists != clist.end())
@@ -394,12 +412,8 @@ int main(int argc, char *argv[])
 
                     printf("*****************************************************\n");
 
-                    ih.SetDestIP(con.src);
-                    ih.SetSourceIP(con.dest);
+                    
                     ih.SetProtocol(con.protocol);
-
-
-
 
                     ih.SetProtocol(IP_PROTO_TCP);
                     //ih.SetSourceIP("192.168.128.1");
