@@ -338,14 +338,12 @@ int main(int argc, char *argv[])
                 TCPHeader tcp_header;	// For storing the TCP header
                 tcp_header = mux_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet.
 
+                IPHeader ip_header;	// For holding the IP header
+                ip_header = mux_packet.FindHeader(Headers::IPHeader);	// Get the IP header from the MUX packet
 
-                IPHeader ip_header;
-                ip_header = mux_packet.FindHeader(Headers::IPHeader);
+                unsigned char f;	// To hold the flags from the packet
 
-
-                unsigned char f;
-
-
+				
                 Connection c;
                 ip_header.GetDestIP(c.src);
                 ip_header.GetSourceIP(c.dest);
@@ -462,20 +460,13 @@ int main(int argc, char *argv[])
                 {
                     printf("Couldn't see this.");
                 }
-
-
-
-
-
-
-                }
-            }
-
-        if (event.eventtype == MinetEvent::Timeout)
-        {
-            // timeout ! probably need to resend some packets
-        }
-    }
+			}
+            if (event.eventtype == MinetEvent::Timeout)
+			{
+				// timeout ! probably need to resend some packets
+			}
+		}
+	}
     MinetDeinit();	// Deinitialize the minet stack
     return 0;	// Program finished
 }
