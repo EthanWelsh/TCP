@@ -167,15 +167,17 @@ int main(int argc, char *argv[])
 	ConnectionToStateMapping<TCPState> c_mapping;
 	// End what was given for the moment
 
+	Packet envelope; // Declare the packet
+	IPHeader new_ipheader;	// Holds the IP Header
+	TCPHeader new_tcpheader;	// Holds the TCP Header
 	if(isClient)
 	{
 		// Send a SYN packet in client mode
 		cerr<< "---------------Building a packet to send off------------" << endl;
-		Packet envelope; // Declare the packet
+		
 		unsigned char alerts = 0; 	// Alerts are flags for the packet being sent
 		int packet_size = TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
-		IPHeader new_ipheader;	// Holds the IP Header
-		TCPHeader new_tcpheader;	// Holds the TCP Header
+		
 		new_ipheader.SetSourceIP("192.168.128.1");	// Set the source IP --- my IP Address
 		new_ipheader.SetDestIP("192.168.42.5");	// Set the destination IP --- NETLAB-3
 		new_ipheader.SetTotalLength(packet_size);	 // Total length of the packet being sent off
