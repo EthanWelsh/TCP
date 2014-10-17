@@ -342,19 +342,20 @@ int main(int argc, char *argv[])
                 ip_header = mux_packet.FindHeader(Headers::IPHeader);	// Get the IP header from the MUX packet
 
                 unsigned char f;	// To hold the flags from the packet
+                unsigned char cap_flags = 0;
 
                 tcp_header.GetFlags(f); //	Assign f with flags received from TCP Header
 
                 if(IS_SYN(f) && !IS_ACK(f)) // If it's just a SYN packet
                 {
                     printf("You got a SYN\n");
-                    SET_SYN(alerts);
-                    SET_ACK(alerts);
+                    SET_SYN(cap_flags);
+                    SET_ACK(cap_flags);
                 }
                 else if(IS_SYN(f) && IS_ACK(f)) // If it's a SYN-ACK
                 {
                     printf("You got a SYN - ACK\n");
-                    SET_ACK(alerts);
+                    SET_ACK(cap_flags);
                 }
                 else
                 {
@@ -362,9 +363,11 @@ int main(int argc, char *argv[])
                 }
 				
 				Packet to_send;
-				
+
+
+
 				TCPHeader new_tcphead;	// Holds the TCP Header
-				to_send.PushFrontHeader(ipheader);	// Add the IPHeader into the packet
+				to_send.PushFrontHeader(new_ipheader);	// Add the IPHeader into the packet
 				cerr<< "---------------------------------" << endl;
 				cerr << "\n new_ipheader: \n" << new_ipheader << endl;	// Print the header for testing and Part 1
 				cerr<< "---------------------------------" << endl;
@@ -376,7 +379,7 @@ int main(int argc, char *argv[])
 				new_tcphead.SetWinSize(100, to_send);
 				new_tcphead.SetUrgentPtr(0, to_send);
     
-				new_tcphead.SetFlags(alerts, to_send);	// Set the flag in the header
+				new_tcphead.SetFlags(cap_flags, to_send);	// Set the flag in the header
 				
 				// Print out the finished TCP header for testing
 				cerr<< "---------------------------------" << endl;
