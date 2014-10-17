@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
     
     new_tcpheader.RecomputeChecksum(envelope);
     
-    to_build.PushBackHeader(new_tcpheader);		// Push the header into the packet
+    envelope.PushBackHeader(new_tcpheader);		// Push the header into the packet
     cerr<< "---------------Packet is built------------" << endl;
 	
 	cerr<< "---------------Sending the Packet------------" << endl;
@@ -353,8 +353,6 @@ int main(int argc, char *argv[])
                 tcp_header.GetFlags(f); //	Assign f with flags received from TCP Header
 	
                 printf("I'm seeing a flag of %d\n", f);
-
-                unsigned char alerts = 0;
 
                 if(f==20) // If it's just a SYN packet
                 {
