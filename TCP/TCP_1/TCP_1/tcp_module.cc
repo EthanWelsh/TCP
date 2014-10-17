@@ -167,11 +167,12 @@ int main(int argc, char *argv[])
 	ConnectionToStateMapping<TCPState> c_mapping;
 	// End what was given for the moment
 
-	Packet envelope; // Declare the packet
-	IPHeader new_ipheader;	// Holds the IP Header
-	TCPHeader new_tcpheader;	// Holds the TCP Header
-	if(isClient)
-	{
+
+
+
+        Packet envelope; // Declare the packet
+        IPHeader new_ipheader;	// Holds the IP Header
+        TCPHeader new_tcpheader;	// Holds the TCP Header
 		// Send a SYN packet in client mode
 		cerr<< "---------------Building a packet to send off------------" << endl;
 		
@@ -212,7 +213,7 @@ int main(int argc, char *argv[])
 		sleep(1);
 		MinetSend(mux, envelope);
 		cerr<< "---------------Packet has been sent------------" << endl;
-	}
+
     SockRequestResponse req;	// Hold the request
     SockRequestResponse reply;	// Hold the response
 
@@ -351,22 +352,28 @@ int main(int argc, char *argv[])
 
                 tcp_header.GetFlags(f); //	Assign f with flags received from TCP Header
 
+                unsigned int ack_num = 0;
+
                 if(IS_SYN(f) && !IS_ACK(f)) // If it's just a SYN packet
                 {
                     printf("You got a SYN\n");
                     SET_SYN(cap_flags);
                     SET_ACK(cap_flags);
+
+
+
                 }
                 else if(IS_SYN(f) && IS_ACK(f)) // If it's a SYN-ACK
                 {
+
+                    tcp_header.GetAckNum(ack_num);
+                    printf("We have ACK %d", ack_num);
+
+
                     printf("You got a SYN - ACK\n");
                     SET_ACK(cap_flags);
                 }
-                else
-                {
-                    printf("We got something else\n");
-                }
-				
+
 				Packet to_send;
 
 				TCPHeader new_tcphead;	// Holds the TCP Header
@@ -377,22 +384,22 @@ int main(int argc, char *argv[])
 				new_tcphead.SetSourcePort(5050, to_send);
 				new_tcphead.SetDestPort(5050, to_send);
 				new_tcphead.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_send);
-    
-				new_tcphead.SetAckNum(1, to_send);
+
+				new_tcphead.SetAckNum(ack_num + 1, to_send);
 				new_tcphead.SetWinSize(100, to_send);
 				new_tcphead.SetUrgentPtr(0, to_send);
-    
+
 				new_tcphead.SetFlags(cap_flags, to_send);	// Set the flag in the header
-				
+
 				// Print out the finished TCP header for testing
 				cerr<< "---------------------------------" << endl;
 				cerr << "\new_tcpheader: \n" << new_tcphead<< endl;
 				cerr<< "---------------------------------" << endl;
-				
+
 				new_tcphead.RecomputeChecksum(to_send);
-				
+
 				to_send.PushBackHeader(new_tcphead);		// Push the header into the packet
-				
+
 				printf("Sending Packet\n");
 				MinetSend(mux, to_send);
 				printf("Packet Sent\n");
