@@ -1,13 +1,6 @@
-// You will build this in project part B - this is merely a
-// stub that does nothing but integrate into the stack
-
-// For project parts A and B, an appropriate binary will be
-// copied over as part of the build process
-
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -16,13 +9,9 @@
 #include <fcntl.h>
 #include <errno.h>
 
-/**************/
-
 #include "../libminet/tcpstate.h"
 
-
 void build_packet(Packet &, ConnectionToStateMapping<TCPState> &, int , int , bool);
-
 
 #include <iostream>
 
@@ -74,65 +63,41 @@ int main(int argc, char *argv[])
     MinetEvent event;
     double timeout = 1;
     ConnectionToStateMapping<TCPState> c_mapping;
-    // End what was given for the moment
-
+    
     Packet envelope; // Declare the packet
     IPHeader new_ipheader;	// Holds the IP Header
     TCPHeader new_tcpheader;	// Holds the TCP Header
-    // Send a SYN packet in client mode
+    
     cerr<< "---------------Building a packet to send off------------" << endl;
 
-    unsigned char alerts = 0; 	// Alerts are flags for the packet being sent
-    //int packet_size = TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
-
-
+    unsigned char alerts = 0; // Alerts are flags for the packet being sent
+    
+    // Send a SYN packet in client mode
     if(isClient)
     {
-        new_ipheader.SetSourceIP("192.168.128.1");	// Set the source IP --- my IP Address
+        new_ipheader.SetSourceIP("192.168.128.1"); // Set the source IP --- my IP Address
         new_ipheader.SetDestIP("192.168.42.5");	// Set the destination IP --- NETLAB-3
 
         new_ipheader.SetProtocol(IP_PROTO_TCP);	// Set protocol to TCP
 
-        new_ipheader.SetTotalLength(IP_HEADER_BASE_LENGTH + TCP_HEADER_BASE_LENGTH);	 // Total length of the packet being sent off
+        new_ipheader.SetTotalLength(IP_HEADER_BASE_LENGTH + TCP_HEADER_BASE_LENGTH); // Total length of the packet being sent off
         envelope.PushFrontHeader(new_ipheader);	// Add the IPHeader into the packet
-
-
 
         new_tcpheader.SetSourcePort(2020, envelope);
         new_tcpheader.SetDestPort(2020, envelope);
 
-
-        //new_tcpheader.SetAckNum(0, envelope);
         new_tcpheader.SetSeqNum(1, envelope);
 
         new_tcpheader.SetWinSize(100, envelope);
         new_tcpheader.SetUrgentPtr(0, envelope);
 
-
         SET_SYN(alerts); // Set the flag that this is a SYN packet
-        new_tcpheader.SetFlags(alerts, envelope);	// Set the flag in the header
-
-        // Print out the finished TCP header for testing
-
+        new_tcpheader.SetFlags(alerts, envelope); // Set the flag in the header
 
         new_tcpheader.RecomputeChecksum(envelope);
 
         new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, envelope);
         envelope.PushBackHeader(new_tcpheader);	// Push the header into the packet
-
-        cerr << "\new_tcpheader:\n" << new_tcpheader<< endl;
-        cerr<< "---------------------------------" << endl;
-        cerr << "\n new_ipheader:\n" << new_ipheader << endl;	// Print the header for testing and Part 1
-
-        cerr<<"****************************************************"<<endl;
-        cerr<<"****************************************************"<<endl;
-        cerr<<"****************************************************"<<endl;
-
-        cerr<<"SYN PACKET: \n"<<envelope<<endl;
-
-        cerr<<"****************************************************"<<endl;
-        cerr<<"****************************************************"<<endl;
-        cerr<<"****************************************************"<<endl;
 
         MinetSend(mux, envelope); // Send the packet to mux
         sleep(1);
@@ -156,19 +121,17 @@ int main(int argc, char *argv[])
             if (event.handle == sock)
             {
                 printf("Well... I am in the Sock... Is it good or bad?\n");
-                // socket request or response has arrived
             }
             if (event.handle == mux)
             {
-                //cerr<< "---------------Welcome to the mux portion------------" << endl;
-                Packet mux_packet;	// Receipt packet
-                MinetReceive(mux, mux_packet);	// Receive packet
-                //int total_size= TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
+                Packet mux_packet; // Receipt packet
+                MinetReceive(mux, mux_packet); // Receive packet
+                
                 unsigned short length = TCPHeader::EstimateTCPHeaderLength(mux_packet);	// Estimate length
                 mux_packet.ExtractHeaderFromPayload<TCPHeader>(length);	// Get the Header from the packet
 
-                TCPHeader tcp_header;	// For storing the TCP header
-                tcp_header = mux_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet.
+                TCPHeader tcp_header; // For storing the TCP header
+                tcp_header = mux_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet
 
                 IPHeader ip_header;	// For holding the IP header
                 ip_header = mux_packet.FindHeader(Headers::IPHeader);	// Get the IP header from the MUX packet
@@ -176,19 +139,15 @@ int main(int argc, char *argv[])
                 unsigned char f;	// To hold the flags from the packet
                 unsigned char cap_flags = 0;
 
-                tcp_header.GetFlags(f); //	Assign f with flags received from TCP Header
+                tcp_header.GetFlags(f); // Assign f with flags received from TCP Header
 
                 unsigned int ack_num = 0;
                 unsigned int seq_num = 0;
 
-
-
                 tcp_header.GetSeqNum(seq_num);
 
                 Packet to_send;	// Declare the response packet
-
                 IPHeader iph;	// Holds the IP Header
-
 
                 IPAddress temp;		// hold the IP Address for switching around
                 ip_header.GetSourceIP(temp); // Should give us the source
@@ -196,15 +155,12 @@ int main(int argc, char *argv[])
                 ip_header.GetDestIP(temp); // Should give us the source
                 iph.SetSourceIP(temp);	// Set the source IP --- my IP Address
 
-
-
                 iph.SetProtocol(IP_PROTO_TCP);	// Set protocol to TCP
 
                 iph.SetTotalLength(IP_HEADER_BASE_LENGTH + TCP_HEADER_BASE_LENGTH);
                 to_send.PushFrontHeader(iph);	// Add the IPHeader into the packet
 
                 TCPHeader new_tcphead;	// Holds the TCP Header
-
 
                 if(IS_SYN(f) && !IS_ACK(f)) // ___SYN___
                 {
@@ -216,9 +172,6 @@ int main(int argc, char *argv[])
                     new_tcphead.SetAckNum(seq_num+1, to_send);
 
                     cerr<<"SYN"<<tcp_header<<endl;
-
-
-
                     printf("~~~~~~~~~~~Done with SYN~~~~~~~~~~~~~~~~~~~~\n");
 
 
@@ -226,17 +179,13 @@ int main(int argc, char *argv[])
                 else if(IS_ACK(f) && !IS_SYN(f)) // ___ACK___
                 {
                     printf("Three way handshake is complete. Nice to meet you.\n");
-                    //return 0;
                     for(;;);
-
-                    //SET_ACK(cap_flags);
                 }
                 else if(IS_SYN(f) && IS_ACK(f)) // ___SYN-ACK___
                 {
                     printf("~~~~~~~~~~~SYNACK Actions~~~~~~~~~~~~~~~~~~~~\n");
 
                     seq_num= seq_num + 1;
-//                    ack_num+=1;
 
                     new_tcphead.SetSeqNum(ack_num, to_send);
                     new_tcphead.SetAckNum(seq_num, to_send);
@@ -245,14 +194,8 @@ int main(int argc, char *argv[])
 
                     cerr<<"\nSYN ACK\n"<<tcp_header<<endl;
 
-
                     printf("~~~~~~~ Finished SYNACK Actions~~~~~~~~~~~~~~~~~~~~~~~~\n");
-
-                    // *******CREATE A NEW IP HEADER******** //
                 }
-
-
-
 
                 unsigned short theRealPort = 0;
 
@@ -263,30 +206,23 @@ int main(int argc, char *argv[])
                     new_tcphead.SetSourcePort(2121, to_send);
 
 
-                    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
                 }
                 else
                 {
                     new_tcphead.SetSourcePort(2121, to_send);
                     new_tcphead.SetDestPort(2121, to_send);
-                    printf("#########################################################\n");
                 }
-
-
 
                 new_tcphead.SetWinSize(100, to_send);
                 new_tcphead.SetUrgentPtr(0, to_send);
 
-                new_tcphead.SetFlags(cap_flags, to_send);	// Set the flag in the header
-
-                //new_tcphead.RecomputeChecksum(to_send);
-
+                new_tcphead.SetFlags(cap_flags, to_send); // Set the flag in the header
 
                 new_tcphead.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_send);
 
                 new_tcphead.RecomputeChecksum(to_send);
 
-                to_send.PushBackHeader(new_tcphead);		// Push the header into the packet
+                to_send.PushBackHeader(new_tcphead); // Push the header into the packet
 
                 MinetSend(mux, to_send);
 
