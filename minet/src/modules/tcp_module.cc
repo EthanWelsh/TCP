@@ -105,7 +105,6 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
             break;
         }
 
-
         case ACK:
         {
             SET_ACK(alerts);
@@ -262,13 +261,6 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 
                     printf("~~~~~~~~~~~Done with SYN~~~~~~~~~~~~~~~~~~~~\n");
                 }
-                else if(IS_ACK(recv_flags) && !IS_SYN(recv_flags)) // ___ACK___
-                {
-                    cerr<<"TCP HEADER: "<<recv_tcph<<endl;
-
-                    printf("Three way handshake is complete. Nice to meet you.\n");
-                    return;
-                }
                 else if(IS_SYN(recv_flags) && IS_ACK(recv_flags)) // ___SYN-ACK___
                 {
                     printf("~~~~~~~~~~~SYNACK Actions~~~~~~~~~~~~~~~~~~~~\n");
@@ -282,6 +274,28 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 
                     printf("~~~~~~~ Finished SYNACK Actions~~~~~~~~~~~~~~~~~~~~~~~~\n");
                 }
+				else if(IS_ACK(recv_flags) && !IS_SYN(recv_flags)) // ___ACK___
+                {
+                    cerr<<"TCP HEADER: "<<recv_tcph<<endl;
+
+                    printf("Three way handshake is complete. Nice to meet you.\n");
+					// Build a packet
+					// Add in data --- "Hello World"
+					// Update ACK number
+					// Update sequence number
+					// Recompute checksum
+					// Send packet
+                    return;
+                }
+				else		// Received normal packet
+				{
+					// Tear apart packet
+					// Print the contents
+					// Build ACK packet
+					// Update sequence number
+					// recompute checksum
+					// send packet
+				}
 
                 unsigned short theRealPort = 0;
 
