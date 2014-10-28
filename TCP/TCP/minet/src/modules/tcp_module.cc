@@ -60,19 +60,53 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+
+
+
     MinetEvent event;
-	int timeout=1;
+	int timeout = 1;
+
+    cerr<<"About to enter the envent loop."<<endl;
+
 	while (MinetGetNextEvent(event, timeout) == 0)
 	{
-		if ((event.eventtype == MinetEvent::Dataflow) && 
-			(event.direction == MinetEvent::IN))
+        cerr<<"IN LOOP."<<endl;
+
+		if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
 		{
+
+            cerr<<"IN IF."<<endl;
+
 			if (event.handle == mux)
 			{
+            /*
+             * This event describes anything that comes from below. Any packets that are received, be
+             * they SYNs, ACKs, SYN ACks, or just regular data packets will be processed inside of this
+             * event loop.
+             *
+             * This is also where the server will initiate its connections: it will recieve a packet
+             * from the client, and it will send a reply using its IP and Port # as the source, and the
+             * IP and port number from the incoming packet as the destination.
+             */
+
 				// ip packet has arrived!
+                cerr<<"I got a mux event."<<endl;
+                SockRequestResponse request;
+                SockRequestResponse response;
+                MinetReceive(sock, request);
 			}
 			if (event.handle == sock)
 			{
+            /*
+             * This is how the application layer talks to us. When a connection is requested, it'll
+             * come from the sock. Once we see something coming from the sock, we will build a SYN
+             * packet using our IPAddress and Port # as the source, and the IP and Port # specified
+             * in the request. We'll build a SYN packet from this information, and send it out to the
+             * server. From then on, everything will be handled in the MUX.
+             */
+
+                cerr<<"I got a sock event."<<endl;
+
 				SockRequestResponse request;
 				SockRequestResponse response;
 				MinetReceive(sock, request);
@@ -81,7 +115,7 @@ int main(int argc, char *argv[])
 				// Check to see if there is a matching connection in the ConnectionList
 				ConnectionList<TCPState>::iterator CL_iterator = conn_list.FindMatching(request.connection);
 				
-				if (CL_iterator == clist.end())
+				if (CL_iterator == conn_list.end())
 				{
 					cerr<< "**********Connection was not found in the list**********" << endl;
 					switch (request.type)
@@ -94,7 +128,7 @@ int main(int argc, char *argv[])
 							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
 							conn_list.push_back(new_CTSM);
 							
-							handshake("192.168.128.1", 5050, "136.142.184.139", 5050, true);
+							handshake("192.168.128.1", 5050, "192.168.42.8", 5050, true);
 							for(;;);
 							
 							MinetSend(mux, being_sent);
@@ -117,7 +151,7 @@ int main(int argc, char *argv[])
 							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time(), server, false);
 							conn_list.push_back(new_CTSM);
 							response.type = STATUS;
-							response.connection = req.connection;
+							response.connection = request.connection;
 							response.bytes = 0;
 							response.error = EOK;
 							MinetSend(sock, response);
@@ -131,7 +165,7 @@ int main(int argc, char *argv[])
 						case WRITE:
 						{
 							response.type = STATUS;
-							response.connection = req.connection;
+							response.connection = request.connection;
 							response.bytes = 0;
 							response.error = ENOMATCH;
 							MinetSend(sock, response);
@@ -219,8 +253,8 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
 		break;
 		case PSHACK:
 		{ 
-			SET_PSH(flags);
-			SET_ACK(flags);
+			SET_PSH(alerts);
+			SET_ACK(alerts);
 			cerr << "It is a HEADERTYPE_PSHACK!" << endl;
 		}
 		break;
@@ -250,9 +284,9 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
     }
 
     // Set the flag
-    new_tcpheader.SetFlags(alerts);
+    new_tcpheader.SetFlags(alerts, to_build);
 
-    new_tcpheader.RecomputeChecksum();
+    new_tcpheader.RecomputeChecksum(to_build);
 
     // Push the header into the packet
     to_build.PushBackHeader(new_tcpheader);
