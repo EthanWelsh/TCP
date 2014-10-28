@@ -24,9 +24,10 @@ using namespace std;
 #define SYN 1
 #define ACK 2
 #define SYN_ACK 3
-#define FIN 4
-#define FIN_ACK 5
-#define RST 6
+#define PSHACK 4
+#define FIN 5
+#define FIN_ACK 6
+#define RST 7
 
 MinetHandle mux; // Mutex to ensure not preempted
 MinetHandle sock; // Socket
@@ -106,8 +107,52 @@ int main(int argc, char *argv[])
 							response.error = EOK;
 							MinetSend(sock, response);
 							
-							cerr << "===============END CASE CONNECT===============" << endl;
+							cerr << "Done with the connection case" << endl;
                         }
+						break;
+						case ACCEPT: 
+						{
+							cerr << "Starting the accept case" << endl;
+							TCPState server(1, LISTEN, 5);
+							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time(), server, false);
+							conn_list.push_back(new_CTSM);
+							response.type = STATUS;
+							response.connection = req.connection;
+							response.bytes = 0;
+							response.error = EOK;
+							MinetSend(sock, response);
+							cerr << "Done with the accept case" << endl;
+						}
+						break;
+						case STATUS:
+						{
+						}
+						break;
+						case WRITE:
+						{
+							response.type = STATUS;
+							response.connection = req.connection;
+							response.bytes = 0;
+							response.error = ENOMATCH;
+							MinetSend(sock, response);
+						}
+						break;
+						case FORWARD:
+						{
+						}
+						break;
+						case CLOSE:
+						{
+							response.type = STATUS;
+							response.connection = request.connection;
+							response.bytes = 0;
+							response.error = ENOMATCH;
+							MinetSend(sock, response);
+						}
+						break;
+						default:
+						{
+						}
 						break;
 					}
 				}
