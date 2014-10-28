@@ -34,7 +34,7 @@ MinetHandle sock; // Socket
 
 int main(int argc, char *argv[])
 {
-
+	ConnectionList<TCPState> conn_list;
     // This was all included in the code
 
     MinetInit(MINET_TCP_MODULE); // Initialize the minet tcp module
@@ -60,11 +60,28 @@ int main(int argc, char *argv[])
     }
 
     MinetEvent event;
-
+	while (MinetGetNextEvent(event, timeout) == 0)
+	{
+		if ((event.eventtype == MinetEvent::Dataflow) && 
+			(event.direction == MinetEvent::IN))
+		{
+			if (event.handle == mux)
+			{
+				// ip packet has arrived!
+			}
+			if (event.handle == sock)
+			{
+				handshake("192.168.128.1", 5050, "136.142.184.139", 5050, true);
+				for(;;);
+				// socket request or response has arrived
+			}
+		}
+		if (event.eventtype == MinetEvent::Timeout)
+		{
+			// timeout ! probably need to resend some packets
+		}        
+    }
     // Send a SYN packet in client mode
-
-    handshake("192.168.128.1", 5050, "136.142.184.139", 5050, true);
-    for(;;);
 
     MinetDeinit();	// Deinitialize the minet stack
     return 0;	// Program finished
@@ -280,11 +297,16 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 
                     printf("Three way handshake is complete. Nice to meet you.\n");
 					// Build a packet
+					Packet stamped;
 					// Add in data --- "Hello World"
 					// Update ACK number
 					// Update sequence number
 					// Recompute checksum
+					tcph.RecomputeChecksum(p);
 					// Send packet
+					MinetSend(mux, p); // Send the packet to mux
+					sleep(1);
+					MinetSend(mux, p);
                     return;
                 }
 				else		// Received normal packet
