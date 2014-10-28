@@ -60,6 +60,7 @@ int main(int argc, char *argv[])
     }
 
     MinetEvent event;
+	int timeout=1;
 	while (MinetGetNextEvent(event, timeout) == 0)
 	{
 		if ((event.eventtype == MinetEvent::Dataflow) && 
@@ -296,7 +297,7 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
                     cerr<<"TCP HEADER: "<<recv_tcph<<endl;
 
                     printf("Three way handshake is complete. Nice to meet you.\n");
-					// Build a packet
+					/*// Build a packet
 					Packet stamped;
 					// Add in data --- "Hello World"
 					// Update ACK number
@@ -307,7 +308,7 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 					MinetSend(mux, p); // Send the packet to mux
 					sleep(1);
 					MinetSend(mux, p);
-                    return;
+                    return;*/
                 }
 				else		// Received normal packet
 				{
