@@ -72,9 +72,49 @@ int main(int argc, char *argv[])
 			}
 			if (event.handle == sock)
 			{
-				handshake("192.168.128.1", 5050, "136.142.184.139", 5050, true);
-				for(;;);
-				// socket request or response has arrived
+				SockRequestResponse request;
+				SockRequestResponse response;
+				MinetReceive(sock, request);
+				Packet being_sent;
+        
+				// Check to see if there is a matching connection in the ConnectionList
+				ConnectionList<TCPState>::iterator CL_iterator = conn_list.FindMatching(request.connection);
+				
+				if (CL_iterator == clist.end())
+				{
+					cerr<< "**********Connection was not found in the list**********" << endl;
+					switch (request.type)
+					{
+						case CONNECT:
+						{
+							cerr << " Working in the connect case of sock\n" << endl;
+							TCPState client(1, SYN_SENT, 5);
+							
+							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
+							conn_list.push_back(new_CTSM);
+							
+							handshake("192.168.128.1", 5050, "136.142.184.139", 5050, true);
+							for(;;);
+							
+							MinetSend(mux, being_sent);
+							sleep(1);
+							MinetSend(mux, being_sent);
+							
+							response.type = STATUS;
+							response.connection = request.connection;
+							response.bytes = 0;
+							response.error = EOK;
+							MinetSend(sock, response);
+							
+							cerr << "===============END CASE CONNECT===============" << endl;
+                        }
+						break;
+					}
+				}
+				else
+				{
+					cerr<< "**********Connection was found in the list**********" << endl;
+				}
 			}
 		}
 		if (event.eventtype == MinetEvent::Timeout)
@@ -82,15 +122,11 @@ int main(int argc, char *argv[])
 			// timeout ! probably need to resend some packets
 		}        
     }
-    // Send a SYN packet in client mode
-
     MinetDeinit();	// Deinitialize the minet stack
     return 0;	// Program finished
 }
 
-
-
-void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mapping, int packet_type, int data_amount)
+void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mapping, int packet_type, int data_amount, bool status)
 {
     cerr<< "---------------Building a packet to send off------------" << endl;
     unsigned char alerts = 0;
@@ -104,7 +140,8 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
     new_ipheader.SetTotalLength(packet_size);
     new_ipheader.SetProtocol(IP_PROTO_TCP);
     to_build.PushFrontHeader(new_ipheader);
-
+	cerr << "\nNew ipheader: \n" << new_ipheader << endl;
+	
     new_tcpheader.SetSourcePort(c_mapping.connection.srcport, to_build);
     new_tcpheader.SetDestPort(c_mapping.connection.destport, to_build);
     new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_build);
@@ -113,51 +150,54 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
     new_tcpheader.SetWinSize(c_mapping.state.GetRwnd(), to_build);
     new_tcpheader.SetUrgentPtr(0, to_build);
 
-    // Determine the flag type
+    // Set the alerat variable
     switch (packet_type)
     {
         case SYN:
         {
             SET_SYN(alerts);
-            cerr << "It is a HEADERTYPE_SYN!" << endl;
-            break;
+            cerr << "It is a SYN!" << endl;
         }
-
+		break;
         case ACK:
         {
             SET_ACK(alerts);
-            cerr << "It is a HEADERTYPE_ACK!" << endl;
-            break;
+            cerr << "It is an ACK!" << endl;
         }
-
+		break;
         case SYN_ACK:
         {
             SET_ACK(alerts);
             SET_SYN(alerts);
             cerr << "It is a HEADERTYPE_SYNACK!" << endl;
-            break;
         }
-
+		break;
+		case PSHACK:
+		{ 
+			SET_PSH(flags);
+			SET_ACK(flags);
+			cerr << "It is a HEADERTYPE_PSHACK!" << endl;
+		}
+		break;
         case FIN:
         {
             SET_FIN(alerts);
-            cerr << "It is a HEADERTYPE_FIN!" << endl;
-            break;
+            cerr << "It is a FIN!" << endl;
         }
+		break;
         case FIN_ACK:
         {
             SET_FIN(alerts);
             SET_ACK(alerts);
-            cerr << "It is a HEADERTYPE_FINACK!" << endl;
-            break;
+            cerr << "It is a FINACK!" << endl;
         }
+		break;
         case RST:
         {
             SET_RST(alerts);
-            cerr << "It is a HEADERTYPE_RST!" << endl;
-            break;
+            cerr << "It is a RESET!" << endl;
         }
-
+		break;
         default:
         {
             break;
@@ -165,12 +205,12 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
     }
 
     // Set the flag
-    new_ipheader.SetFlags(alerts);
+    new_tcpheader.SetFlags(alerts);
 
-    new_ipheader.RecomputeChecksum();
+    new_tcpheader.RecomputeChecksum();
 
     // Push the header into the packet
-    to_build.PushBackHeader(new_ipheader);
+    to_build.PushBackHeader(new_tcpheader);
     cerr<< "---------------Packet is built------------" << endl;
 }
 
