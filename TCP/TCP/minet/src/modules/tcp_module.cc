@@ -10,9 +10,10 @@
 #include <errno.h>
 
 #include "../libminet/tcpstate.h"
+#include "ip.h"
 
 void build_packet(Packet &, ConnectionToStateMapping<TCPState> &, int , int , bool);
-void handshake(IPAddress, int, IPAddress, int, bool);
+void handshake(IPAddress, int, IPAddress, int, int, int, unsigned char, bool);
 
 #include <iostream>
 
@@ -60,13 +61,10 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-
-
-
     MinetEvent event;
 	int timeout = 1;
 
-    cerr<<"About to enter the envent loop."<<endl;
+    cerr<<"About to enter the enent loop."<<endl;
 
 	while (MinetGetNextEvent(event, timeout) == 0)
 	{
@@ -84,16 +82,43 @@ int main(int argc, char *argv[])
              * they SYNs, ACKs, SYN ACks, or just regular data packets will be processed inside of this
              * event loop.
              *
-             * This is also where the server will initiate its connections: it will recieve a packet
+             * This is also where the server will initiate its connections: it will receive a packet
              * from the client, and it will send a reply using its IP and Port # as the source, and the
              * IP and port number from the incoming packet as the destination.
              */
-
 				// ip packet has arrived!
                 cerr<<"I got a mux event."<<endl;
                 SockRequestResponse request;
                 SockRequestResponse response;
-                MinetReceive(sock, request);
+				
+				// Tear apart packet for data
+				Packet recv_packet; // Receipt packet
+				
+				MinetReceive(mux, recv_packet); // Receive packet
+				
+				unsigned short length = TCPHeader::EstimateTCPHeaderLength(recv_packet);// Estimate length
+				recv_packet.ExtractHeaderFromPayload<TCPHeader>(length);	// Get the Header from the packet
+				TCPHeader recv_tcph; // For storing the TCP header
+				recv_tcph = recv_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet
+				
+				IPHeader recv_iph;	// For holding the IP header
+				recv_iph = recv_packet.FindHeader(Headers::IPHeader);	// Get the IP header from the MUX packet
+				
+				unsigned char recv_flags = 0;	// To hold the flags from the packet
+				recv_tcph.GetFlags(recv_flags); // Assign with flags received from TCP Header
+				
+				unsigned int ack_num = 0;
+				unsigned int seq_num = 0;
+				recv_tcph.GetSeqNum(seq_num);
+				
+				IPAddress source;
+				recv_iph.GetSourceIP(source);	// This will need to be the destination
+				IPAddress dest;
+				recv_iph.GetDestIP(dest);	// This will need to be the source
+				if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
+				{
+					handshake(dest, 5050, source, 5050, seq_num, ack_num, recv_flags, false);
+				}
 			}
 			if (event.handle == sock)
 			{
@@ -110,8 +135,7 @@ int main(int argc, char *argv[])
 				SockRequestResponse request;
 				SockRequestResponse response;
 				MinetReceive(sock, request);
-				Packet being_sent;
-        
+				Packet recv_packet;
 				// Check to see if there is a matching connection in the ConnectionList
 				ConnectionList<TCPState>::iterator CL_iterator = conn_list.FindMatching(request.connection);
 				
@@ -127,13 +151,14 @@ int main(int argc, char *argv[])
 							
 							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
 							conn_list.push_back(new_CTSM);
-							
-							handshake("192.168.128.1", 5050, "192.168.42.8", 5050, true);
+							cerr<< "**********1C**********" << endl;
+							handshake("192.168.128.1", 5050, "192.168.42.5", 5050, 0, 0, 0, true);
+							cerr<< "**********2C**********" << endl;
 							for(;;);
 							
-							MinetSend(mux, being_sent);
+							MinetSend(mux, recv_packet);
 							sleep(1);
-							MinetSend(mux, being_sent);
+							MinetSend(mux, recv_packet);
 							
 							response.type = STATUS;
 							response.connection = request.connection;
@@ -143,46 +168,6 @@ int main(int argc, char *argv[])
 							
 							cerr << "Done with the connection case" << endl;
                         }
-						break;
-						case ACCEPT: 
-						{
-							cerr << "Starting the accept case" << endl;
-							TCPState server(1, LISTEN, 5);
-							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time(), server, false);
-							conn_list.push_back(new_CTSM);
-							response.type = STATUS;
-							response.connection = request.connection;
-							response.bytes = 0;
-							response.error = EOK;
-							MinetSend(sock, response);
-							cerr << "Done with the accept case" << endl;
-						}
-						break;
-						case STATUS:
-						{
-						}
-						break;
-						case WRITE:
-						{
-							response.type = STATUS;
-							response.connection = request.connection;
-							response.bytes = 0;
-							response.error = ENOMATCH;
-							MinetSend(sock, response);
-						}
-						break;
-						case FORWARD:
-						{
-						}
-						break;
-						case CLOSE:
-						{
-							response.type = STATUS;
-							response.connection = request.connection;
-							response.bytes = 0;
-							response.error = ENOMATCH;
-							MinetSend(sock, response);
-						}
 						break;
 						default:
 						{
@@ -293,7 +278,7 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
     cerr<< "---------------Packet is built------------" << endl;
 }
 
-void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, bool is_client)
+void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num, unsigned char recv_flags, bool is_client)
 {
     double timeout = 1;
     MinetEvent event;
@@ -304,7 +289,7 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
          *            SEND SYN             *
         \* * * * * * * * * * * * * * * * * */
         Packet p;
-
+cerr<< "**********1C1**********" << endl;
         IPHeader iph;    // Holds the IP Header
         TCPHeader tcph;    // Holds the TCP Header
 
@@ -312,7 +297,7 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 
         iph.SetSourceIP(src_ip); // Set the source IP --- my IP Address
         iph.SetDestIP(dest_ip);    // Set the destination IP --- NETLAB-3
-
+cerr<< "**********1C2**********" << endl;
         iph.SetProtocol(IP_PROTO_TCP);    // Set protocol to TCP
 
         iph.SetTotalLength(IP_HEADER_BASE_LENGTH + TCP_HEADER_BASE_LENGTH); // Total length of the packet being sent off
@@ -320,157 +305,117 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 
         tcph.SetSourcePort(src_port, p);
         tcph.SetDestPort(dest_port, p);
-
+cerr<< "**********1C3**********" << endl;
         tcph.SetSeqNum(1, p);
         tcph.SetWinSize(100, p);
         tcph.SetUrgentPtr(0, p);
 
         SET_SYN(flags); // Set the flag that this is a SYN packet
         tcph.SetFlags(flags, p); // Set the flag in the header
-
+cerr<< "**********1C4**********" << endl;
         tcph.RecomputeChecksum(p);
 
         tcph.SetHeaderLen(TCP_HEADER_BASE_LENGTH, p);
         p.PushBackHeader(tcph);    // Push the header into the packet
+cerr<< "**********1C5**********" << endl;
+
+cerr<<"TCP header: " << tcph << endl;
+cerr<<"------------------------------------------"<<endl;
+cerr<<"IP header: " << iph << endl;
 
         MinetSend(mux, p); // Send the packet to mux
         sleep(1);
         MinetSend(mux, p);
+cerr<< "**********1C6**********" << endl;
     }
+	else if (!is_client)	// If operating as the server
+	{
+		cerr<< "**********1S1**********" << endl;
+		// Declare and build new packet to send off
+		Packet to_send;	// Declare the response packet
+		IPHeader new_iph;	// Holds the IP Header
+		new_iph.SetDestIP(src_ip);	// Set the destination IP --- NETLAB-3
+		new_iph.SetSourceIP(dest_ip);	// Set the source IP --- my IP Address
+		new_iph.SetProtocol(IP_PROTO_TCP);	// Set protocol to TCP
+		new_iph.SetTotalLength(IP_HEADER_BASE_LENGTH + TCP_HEADER_BASE_LENGTH);
+		to_send.PushFrontHeader(new_iph);	// Add the IPHeader into the packet
+		TCPHeader new_tcph;	// Holds the TCP Header
+		unsigned char new_flags = 0;
+		cerr<< "**********1S2**********" << endl;
+		// This part sets the flags
+		if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
+		{
+			cerr<< "**********1S3**********" << endl;
+			printf("~~~~~~~~~~~~Got a SYN~~~~~~~~~~~~~~~~~~~\n");
+			SET_SYN(new_flags);
+			SET_ACK(new_flags);
 
-    while (MinetGetNextEvent(event, timeout) == 0)
-    {
-        if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
-        {
-            if (event.handle == sock)
-            {
-                printf("Well... I am in the Sock... Is it good or bad?\n");
-            }
-            if (event.handle == mux)
-            {
-                Packet recv_packet; // Receipt packet
-                MinetReceive(mux, recv_packet); // Receive packet
+			new_tcph.SetSeqNum(1, to_send);
+			new_tcph.SetAckNum(seq_num+1, to_send);
 
-                unsigned short length = TCPHeader::EstimateTCPHeaderLength(recv_packet);	// Estimate length
-                recv_packet.ExtractHeaderFromPayload<TCPHeader>(length);	// Get the Header from the packet
+			printf("~~~~~~~~~~~Done with SYN~~~~~~~~~~~~~~~~~~~~\n");
+		}
+		else if(IS_SYN(recv_flags) && IS_ACK(recv_flags)) // ___SYN-ACK___
+		{
+			printf("~~~~~~~~~~~SYNACK Actions~~~~~~~~~~~~~~~~~~~~\n");
 
-                TCPHeader recv_tcph; // For storing the TCP header
-                recv_tcph = recv_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet
+			seq_num = seq_num + 1;
 
-                IPHeader recv_iph;	// For holding the IP header
-                recv_iph = recv_packet.FindHeader(Headers::IPHeader);	// Get the IP header from the MUX packet
+			new_tcph.SetSeqNum(ack_num, to_send);
+			new_tcph.SetAckNum(seq_num, to_send);
 
-                unsigned char recv_flags = 0;	// To hold the flags from the packet
-                unsigned char new_flags = 0;
+			SET_ACK(new_flags);
 
-                recv_tcph.GetFlags(recv_flags); // Assign f with flags received from TCP Header
+			printf("~~~~~~~ Finished SYNACK Actions~~~~~~~~~~~~~~~~~~~~~~~~\n");
+		}
+		else if(IS_ACK(recv_flags) && !IS_SYN(recv_flags)) // ___ACK___
+		{
+			cerr<<"We got an ACK packet"<<endl;
 
-                unsigned int ack_num = 0;
-                unsigned int seq_num = 0;
+			printf("Three way handshake is complete. Nice to meet you.\n");
+			/*// Build a packet
+			Packet stamped;
+			// Add in data --- "Hello World"
+			// Update ACK number
+			// Update sequence number
+			// Recompute checksum
+			tcph.RecomputeChecksum(p);
+			// Send packet
+			MinetSend(mux, p); // Send the packet to mux
+			sleep(1);
+			MinetSend(mux, p);
+			return;*/
+		}
+		unsigned short theRealPort = 0;
+/*
+		if(IS_SYN(recv_flags) && !IS_ACK(recv_flags))
+		{
+			
+			recv_tcph.GetSourcePort(theRealPort);
+			new_tcph.SetDestPort(theRealPort, to_send);
+			new_tcph.SetSourcePort(src_port, to_send);
+		}
+		else
+		{
+			new_tcph.SetSourcePort(src_port, to_send);
+			new_tcph.SetDestPort(dest_port, to_send);
+		}
+		
+*/
+		new_tcph.SetSourcePort(src_port, to_send);
+		new_tcph.SetDestPort(dest_port, to_send);
+			
+		new_tcph.SetWinSize(100, to_send);
+		new_tcph.SetUrgentPtr(0, to_send);
 
-                recv_tcph.GetSeqNum(seq_num);
+		new_tcph.SetFlags(new_flags, to_send); // Set the flag in the header
 
-                Packet to_send;	// Declare the response packet
-                IPHeader new_iph;	// Holds the IP Header
+		new_tcph.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_send);
 
-                IPAddress temp_ip;		// hold the IP Address for switching around
-                recv_iph.GetSourceIP(temp_ip); // Should give us the source
-                recv_iph.GetDestIP(temp_ip); // Should give us the source
+		new_tcph.RecomputeChecksum(to_send);
 
-                new_iph.SetDestIP(temp_ip);	// Set the destination IP --- NETLAB-3
-                new_iph.SetSourceIP(temp_ip);	// Set the source IP --- my IP Address
+		to_send.PushBackHeader(new_tcph); // Push the header into the packet
 
-                new_iph.SetProtocol(IP_PROTO_TCP);	// Set protocol to TCP
-
-                new_iph.SetTotalLength(IP_HEADER_BASE_LENGTH + TCP_HEADER_BASE_LENGTH);
-                to_send.PushFrontHeader(new_iph);	// Add the IPHeader into the packet
-
-                TCPHeader new_tcph;	// Holds the TCP Header
-
-                if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
-                {
-                    printf("~~~~~~~~~~~~Got a SYN~~~~~~~~~~~~~~~~~~~\n");
-                    SET_SYN(new_flags);
-                    SET_ACK(new_flags);
-
-                    new_tcph.SetSeqNum(1, to_send);
-                    new_tcph.SetAckNum(seq_num+1, to_send);
-
-                    printf("~~~~~~~~~~~Done with SYN~~~~~~~~~~~~~~~~~~~~\n");
-                }
-                else if(IS_SYN(recv_flags) && IS_ACK(recv_flags)) // ___SYN-ACK___
-                {
-                    printf("~~~~~~~~~~~SYNACK Actions~~~~~~~~~~~~~~~~~~~~\n");
-
-                    seq_num = seq_num + 1;
-
-                    new_tcph.SetSeqNum(ack_num, to_send);
-                    new_tcph.SetAckNum(seq_num, to_send);
-
-                    SET_ACK(new_flags);
-
-                    printf("~~~~~~~ Finished SYNACK Actions~~~~~~~~~~~~~~~~~~~~~~~~\n");
-                }
-				else if(IS_ACK(recv_flags) && !IS_SYN(recv_flags)) // ___ACK___
-                {
-                    cerr<<"TCP HEADER: "<<recv_tcph<<endl;
-
-                    printf("Three way handshake is complete. Nice to meet you.\n");
-					/*// Build a packet
-					Packet stamped;
-					// Add in data --- "Hello World"
-					// Update ACK number
-					// Update sequence number
-					// Recompute checksum
-					tcph.RecomputeChecksum(p);
-					// Send packet
-					MinetSend(mux, p); // Send the packet to mux
-					sleep(1);
-					MinetSend(mux, p);
-                    return;*/
-                }
-				else		// Received normal packet
-				{
-					// Tear apart packet
-					// Print the contents
-					// Build ACK packet
-					// Update sequence number
-					// recompute checksum
-					// send packet
-				}
-
-                unsigned short theRealPort = 0;
-
-                if(IS_SYN(recv_flags) && !IS_ACK(recv_flags))
-                {
-                    recv_tcph.GetSourcePort(theRealPort);
-                    new_tcph.SetDestPort(theRealPort, to_send);
-                    new_tcph.SetSourcePort(src_port, to_send);
-                }
-                else
-                {
-                    new_tcph.SetSourcePort(src_port, to_send);
-                    new_tcph.SetDestPort(dest_port, to_send);
-                }
-
-                new_tcph.SetWinSize(100, to_send);
-                new_tcph.SetUrgentPtr(0, to_send);
-
-                new_tcph.SetFlags(new_flags, to_send); // Set the flag in the header
-
-                new_tcph.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_send);
-
-                new_tcph.RecomputeChecksum(to_send);
-
-                to_send.PushBackHeader(new_tcph); // Push the header into the packet
-
-                MinetSend(mux, to_send);
-
-            }
-            if (event.eventtype == MinetEvent::Timeout)
-            {
-                // timeout ! probably need to resend some packets
-            }
-        }
-    }
+		MinetSend(mux, to_send);
+	}
 }
