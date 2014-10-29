@@ -294,7 +294,7 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
         sleep(1);
         MinetSend(mux, p);
     }
-	else if (!isClient)	// If operating as the server
+	else if (!is_client)	// If operating as the server
 	{
 		// Tear apart packet for data
 		Packet recv_packet; // Receipt packet
