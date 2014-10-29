@@ -10,9 +10,10 @@
 #include <errno.h>
 
 #include "../libminet/tcpstate.h"
+#include "ip.h"
 
 void build_packet(Packet &, ConnectionToStateMapping<TCPState> &, int , int , bool);
-void handshake(IPAddress, int, IPAddress, int, int, bool);
+void handshake(IPAddress, int, IPAddress, int, int, int, bool);
 
 #include <iostream>
 
@@ -92,24 +93,32 @@ int main(int argc, char *argv[])
 				
 				// Tear apart packet for data
 				Packet recv_packet; // Receipt packet
+				
 				MinetReceive(mux, recv_packet); // Receive packet
+				
 				unsigned short length = TCPHeader::EstimateTCPHeaderLength(recv_packet);	// Estimate length
 				recv_packet.ExtractHeaderFromPayload<TCPHeader>(length);	// Get the Header from the packet
 				TCPHeader recv_tcph; // For storing the TCP header
 				recv_tcph = recv_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet
+				
 				IPHeader recv_iph;	// For holding the IP header
 				recv_iph = recv_packet.FindHeader(Headers::IPHeader);	// Get the IP header from the MUX packet
+				
 				unsigned char recv_flags = 0;	// To hold the flags from the packet
-				unsigned char new_flags = 0;
 				recv_tcph.GetFlags(recv_flags); // Assign with flags received from TCP Header
+				
 				unsigned int ack_num = 0;
 				unsigned int seq_num = 0;
 				recv_tcph.GetSeqNum(seq_num);
-				IPAddress source= recv_iph.getSourceIP();	// This will need to be the destination
-				IPAddress dest= recv_iph.getDestIP();	// This will need to be the source
-				// 
-				handshake("192.168.128.1", 5050, "192.168.42.8", 5050, 0, true);
-				// 
+				
+				IPAddress source;
+				recv_iph.GetSourceIP(source);	// This will need to be the destination
+				IPAddress dest;
+				recv_iph.GetDestIP(dest);	// This will need to be the source
+				if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
+				{
+					handshake(dest, 5050, source, 5050, seq_num, ack_num, false);
+				}
 			}
 			if (event.handle == sock)
 			{
@@ -126,7 +135,7 @@ int main(int argc, char *argv[])
 				SockRequestResponse request;
 				SockRequestResponse response;
 				MinetReceive(sock, request);
-				
+				Packet recv_packet;
 				// Check to see if there is a matching connection in the ConnectionList
 				ConnectionList<TCPState>::iterator CL_iterator = conn_list.FindMatching(request.connection);
 				
@@ -143,12 +152,12 @@ int main(int argc, char *argv[])
 							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
 							conn_list.push_back(new_CTSM);
 							
-							handshake("192.168.128.1", 5050, "192.168.42.8", 5050, 0, true);
+							handshake("192.168.128.1", 5050, "192.168.42.8", 5050, 0, 0, true);
 							for(;;);
 							
-							MinetSend(mux, being_sent);
+							MinetSend(mux, recv_packet);
 							sleep(1);
-							MinetSend(mux, being_sent);
+							MinetSend(mux, recv_packet);
 							
 							response.type = STATUS;
 							response.connection = request.connection;
@@ -268,7 +277,7 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
     cerr<< "---------------Packet is built------------" << endl;
 }
 
-void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, bool is_client)
+void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num, unsigned char recv_flags, bool is_client)
 {
     double timeout = 1;
     MinetEvent event;
@@ -317,16 +326,13 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 		// Declare and build new packet to send off
 		Packet to_send;	// Declare the response packet
 		IPHeader new_iph;	// Holds the IP Header
-		IPAddress temp_ip;		// hold the IP Address for switching around
-		recv_iph.GetSourceIP(temp_ip); // Should give us the source
-		recv_iph.GetDestIP(temp_ip); // Should give us the source
-		new_iph.SetDestIP(temp_ip);	// Set the destination IP --- NETLAB-3
-		new_iph.SetSourceIP(temp_ip);	// Set the source IP --- my IP Address
+		new_iph.SetDestIP(src_ip);	// Set the destination IP --- NETLAB-3
+		new_iph.SetSourceIP(dest_ip);	// Set the source IP --- my IP Address
 		new_iph.SetProtocol(IP_PROTO_TCP);	// Set protocol to TCP
 		new_iph.SetTotalLength(IP_HEADER_BASE_LENGTH + TCP_HEADER_BASE_LENGTH);
 		to_send.PushFrontHeader(new_iph);	// Add the IPHeader into the packet
 		TCPHeader new_tcph;	// Holds the TCP Header
-		
+		unsigned char new_flags = 0;
 		// This part sets the flags
 		if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
 		{
