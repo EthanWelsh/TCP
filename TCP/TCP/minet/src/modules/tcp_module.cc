@@ -12,7 +12,7 @@
 #include "../libminet/tcpstate.h"
 
 void build_packet(Packet &, ConnectionToStateMapping<TCPState> &, int , int , bool);
-void handshake(IPAddress, int, IPAddress, int, bool);
+void handshake(IPAddress, int, IPAddress, int, int, bool);
 
 #include <iostream>
 
@@ -81,16 +81,35 @@ int main(int argc, char *argv[])
              * they SYNs, ACKs, SYN ACks, or just regular data packets will be processed inside of this
              * event loop.
              *
-             * This is also where the server will initiate its connections: it will recieve a packet
+             * This is also where the server will initiate its connections: it will receive a packet
              * from the client, and it will send a reply using its IP and Port # as the source, and the
              * IP and port number from the incoming packet as the destination.
              */
-
 				// ip packet has arrived!
                 cerr<<"I got a mux event."<<endl;
                 SockRequestResponse request;
                 SockRequestResponse response;
-                MinetReceive(sock, request);
+				
+				// Tear apart packet for data
+				Packet recv_packet; // Receipt packet
+				MinetReceive(mux, recv_packet); // Receive packet
+				unsigned short length = TCPHeader::EstimateTCPHeaderLength(recv_packet);	// Estimate length
+				recv_packet.ExtractHeaderFromPayload<TCPHeader>(length);	// Get the Header from the packet
+				TCPHeader recv_tcph; // For storing the TCP header
+				recv_tcph = recv_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet
+				IPHeader recv_iph;	// For holding the IP header
+				recv_iph = recv_packet.FindHeader(Headers::IPHeader);	// Get the IP header from the MUX packet
+				unsigned char recv_flags = 0;	// To hold the flags from the packet
+				unsigned char new_flags = 0;
+				recv_tcph.GetFlags(recv_flags); // Assign with flags received from TCP Header
+				unsigned int ack_num = 0;
+				unsigned int seq_num = 0;
+				recv_tcph.GetSeqNum(seq_num);
+				IPAddress source= recv_iph.getSourceIP();	// This will need to be the destination
+				IPAddress dest= recv_iph.getDestIP();	// This will need to be the source
+				// 
+				handshake("192.168.128.1", 5050, "192.168.42.8", 5050, 0, true);
+				// 
 			}
 			if (event.handle == sock)
 			{
@@ -107,8 +126,7 @@ int main(int argc, char *argv[])
 				SockRequestResponse request;
 				SockRequestResponse response;
 				MinetReceive(sock, request);
-				Packet being_sent;
-        
+				
 				// Check to see if there is a matching connection in the ConnectionList
 				ConnectionList<TCPState>::iterator CL_iterator = conn_list.FindMatching(request.connection);
 				
@@ -125,7 +143,7 @@ int main(int argc, char *argv[])
 							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
 							conn_list.push_back(new_CTSM);
 							
-							handshake("192.168.128.1", 5050, "192.168.42.8", 5050, true);
+							handshake("192.168.128.1", 5050, "192.168.42.8", 5050, 0, true);
 							for(;;);
 							
 							MinetSend(mux, being_sent);
@@ -296,22 +314,6 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
     }
 	else if (!is_client)	// If operating as the server
 	{
-		// Tear apart packet for data
-		Packet recv_packet; // Receipt packet
-		MinetReceive(mux, recv_packet); // Receive packet
-		unsigned short length = TCPHeader::EstimateTCPHeaderLength(recv_packet);	// Estimate length
-		recv_packet.ExtractHeaderFromPayload<TCPHeader>(length);	// Get the Header from the packet
-		TCPHeader recv_tcph; // For storing the TCP header
-		recv_tcph = recv_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet
-		IPHeader recv_iph;	// For holding the IP header
-		recv_iph = recv_packet.FindHeader(Headers::IPHeader);	// Get the IP header from the MUX packet
-		unsigned char recv_flags = 0;	// To hold the flags from the packet
-		unsigned char new_flags = 0;
-		recv_tcph.GetFlags(recv_flags); // Assign f with flags received from TCP Header
-		unsigned int ack_num = 0;
-		unsigned int seq_num = 0;
-		recv_tcph.GetSeqNum(seq_num);
-
 		// Declare and build new packet to send off
 		Packet to_send;	// Declare the response packet
 		IPHeader new_iph;	// Holds the IP Header
@@ -368,16 +370,6 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 			MinetSend(mux, p);
 			return;*/
 		}
-		else		// Received normal packet
-		{
-			// Tear apart packet
-			// Print the contents
-			// Build ACK packet
-			// Update sequence number
-			// recompute checksum
-			// send packet
-		}
-
 		unsigned short theRealPort = 0;
 
 		if(IS_SYN(recv_flags) && !IS_ACK(recv_flags))
