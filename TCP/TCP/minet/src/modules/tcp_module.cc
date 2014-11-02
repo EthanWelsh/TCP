@@ -150,9 +150,8 @@ int main(int argc, char *argv[])
 							
 							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
 							conn_list.push_back(new_CTSM);
-							cerr<< "**********1C**********" << endl;
+
 							handshake("192.168.128.1", 5050, "192.168.42.8", 5050, 0, 0, 0, true);
-							cerr<< "**********2C**********" << endl;
 							for(;;);
 							
 							MinetSend(mux, recv_packet);
@@ -288,15 +287,15 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
          *            SEND SYN             *
         \* * * * * * * * * * * * * * * * * */
         Packet p;
-cerr<< "**********1C1**********" << endl;
-        IPHeader iph;    // Holds the IP Header
-        TCPHeader tcph;    // Holds the TCP Header
+
+        IPHeader iph; // Holds the IP Header
+        TCPHeader tcph; // Holds the TCP Header
 
         unsigned char flags = 0;
 
         iph.SetSourceIP(src_ip); // Set the source IP --- my IP Address
         iph.SetDestIP(dest_ip);    // Set the destination IP --- NETLAB-3
-cerr<< "**********1C2**********" << endl;
+
         iph.SetProtocol(IP_PROTO_TCP);    // Set protocol to TCP
 
         iph.SetTotalLength(IP_HEADER_BASE_LENGTH + TCP_HEADER_BASE_LENGTH); // Total length of the packet being sent off
@@ -304,7 +303,7 @@ cerr<< "**********1C2**********" << endl;
 
         tcph.SetSourcePort(src_port, p);
         tcph.SetDestPort(dest_port, p);
-cerr<< "**********1C3**********" << endl;
+
         tcph.SetSeqNum(1, p);
         //tcph.SetAckNum(seq_num + 1, p); //TODO
 
@@ -314,22 +313,15 @@ cerr<< "**********1C3**********" << endl;
 
         SET_SYN(flags); // Set the flag that this is a SYN packet
         tcph.SetFlags(flags, p); // Set the flag in the header
-cerr<< "**********1C4**********" << endl;
+
         tcph.RecomputeChecksum(p);
 
         tcph.SetHeaderLen(TCP_HEADER_BASE_LENGTH, p);
         p.PushBackHeader(tcph);    // Push the header into the packet
-cerr<< "**********1C5**********" << endl;
-
-cerr<<"TCP header: " << tcph << endl;
-cerr<<"------------------------------------------"<<endl;
-cerr<<"IP header: " << iph << endl;
 
         MinetSend(mux, p); // Send the packet to mux
         sleep(1);
         MinetSend(mux, p);
-cerr<< "**********ZEBRASSSSSS**********" << endl;
-
 
         while(1)
         { // Wait for a SYN ACK to come back.
@@ -424,9 +416,8 @@ cerr<< "**********ZEBRASSSSSS**********" << endl;
     }
 	else if (!is_client)	// If operating as the server
 	{
-		cerr<< "**********1S1**********" << endl;
 		// Declare and build new packet to send off
-		Packet to_send;	// Declare the response packet
+        Packet to_send;	// Declare the response packet
 		IPHeader new_iph;	// Holds the IP Header
 		new_iph.SetDestIP(src_ip);	// Set the destination IP --- NETLAB-3
 		new_iph.SetSourceIP(dest_ip);	// Set the source IP --- my IP Address
@@ -435,38 +426,27 @@ cerr<< "**********ZEBRASSSSSS**********" << endl;
 		to_send.PushFrontHeader(new_iph);	// Add the IPHeader into the packet
 		TCPHeader new_tcph;	// Holds the TCP Header
 		unsigned char new_flags = 0;
-		cerr<< "**********1S2**********" << endl;
 		// This part sets the flags
-		if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
+
+        if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
 		{
-			cerr<< "**********1S3**********" << endl;
-			printf("~~~~~~~~~~~~Got a SYN~~~~~~~~~~~~~~~~~~~\n");
 			SET_SYN(new_flags);
 			SET_ACK(new_flags);
 
 			new_tcph.SetSeqNum(1, to_send);
 			new_tcph.SetAckNum(seq_num+1, to_send);
-
-			printf("~~~~~~~~~~~Done with SYN~~~~~~~~~~~~~~~~~~~~\n");
 		}
 		else if(IS_SYN(recv_flags) && IS_ACK(recv_flags)) // ___SYN-ACK___
 		{
-			printf("~~~~~~~~~~~SYNACK Actions~~~~~~~~~~~~~~~~~~~~\n");
-
 			seq_num = seq_num + 1;
 
 			new_tcph.SetSeqNum(ack_num, to_send);
 			new_tcph.SetAckNum(seq_num, to_send);
 
 			SET_ACK(new_flags);
-
-			printf("~~~~~~~ Finished SYNACK Actions~~~~~~~~~~~~~~~~~~~~~~~~\n");
 		}
 		else if(IS_ACK(recv_flags) && !IS_SYN(recv_flags)) // ___ACK___
 		{
-			cerr<<"We got an ACK packet"<<endl;
-
-			printf("Three way handshake is complete. Nice to meet you.\n");
 			/*// Build a packet
 			Packet stamped;
 			// Add in data --- "Hello World"
