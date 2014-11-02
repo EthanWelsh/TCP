@@ -302,7 +302,7 @@ cerr<< "**********1C2**********" << endl;
         tcph.SetDestPort(dest_port, p);
 cerr<< "**********1C3**********" << endl;
         tcph.SetSeqNum(1, p);
-        //tcph.SetAckNum(seq_num + 1, p); //TODO
+        tcph.SetAckNum(seq_num + 1, p); //TODO
 
 
         tcph.SetWinSize(100, p);
