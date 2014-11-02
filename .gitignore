@@ -2,6 +2,7 @@
 *.idea
 /.idea
 .idea/*
+*.xml
 
 # Compiled Object files
 *.slo
