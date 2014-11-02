@@ -302,7 +302,7 @@ cerr<< "**********1C2**********" << endl;
         tcph.SetDestPort(dest_port, p);
 cerr<< "**********1C3**********" << endl;
         tcph.SetSeqNum(1, p);
-        tcph.SetAckNum(seq_num + 1, p); //TODO
+        //tcph.SetAckNum(seq_num + 1, p); //TODO
 
 
         tcph.SetWinSize(100, p);
@@ -383,7 +383,7 @@ cerr<< "**********ZEBRASSSSSS**********" << endl;
                         {
                             seq_num = seq_num + 1;
 
-                            new_tcphead.SetSeqNum(ack_num, to_send);
+                            new_tcphead.SetSeqNum(2, to_send);
                             new_tcphead.SetAckNum(seq_num, to_send);
 
                             SET_ACK(cap_flags);
