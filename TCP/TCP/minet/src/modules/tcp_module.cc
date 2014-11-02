@@ -68,13 +68,8 @@ int main(int argc, char *argv[])
 
 	while (MinetGetNextEvent(event, timeout) == 0)
 	{
-        cerr<<"IN LOOP."<<endl;
-
 		if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
 		{
-
-            cerr<<"IN IF."<<endl;
-
 			if (event.handle == mux)
 			{
             /*
@@ -96,7 +91,7 @@ int main(int argc, char *argv[])
 				
 				MinetReceive(mux, recv_packet); // Receive packet
 				
-				unsigned short length = TCPHeader::EstimateTCPHeaderLength(recv_packet);// Estimate length
+	            unsigned short length = TCPHeader::EstimateTCPHeaderLength(recv_packet);	// Estimate length
 				recv_packet.ExtractHeaderFromPayload<TCPHeader>(length);	// Get the Header from the packet
 				TCPHeader recv_tcph; // For storing the TCP header
 				recv_tcph = recv_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet
@@ -152,7 +147,7 @@ int main(int argc, char *argv[])
 							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
 							conn_list.push_back(new_CTSM);
 							cerr<< "**********1C**********" << endl;
-							handshake("192.168.128.1", 5050, "192.168.42.5", 5050, 0, 0, 0, true);
+							handshake("192.168.128.1", 5050, "192.168.42.8", 5050, 0, 0, 0, true);
 							cerr<< "**********2C**********" << endl;
 							for(;;);
 							
@@ -307,6 +302,9 @@ cerr<< "**********1C2**********" << endl;
         tcph.SetDestPort(dest_port, p);
 cerr<< "**********1C3**********" << endl;
         tcph.SetSeqNum(1, p);
+        //tcph.SetAckNum(seq_num + 1, p); //TODO
+
+
         tcph.SetWinSize(100, p);
         tcph.SetUrgentPtr(0, p);
 
@@ -326,7 +324,99 @@ cerr<<"IP header: " << iph << endl;
         MinetSend(mux, p); // Send the packet to mux
         sleep(1);
         MinetSend(mux, p);
-cerr<< "**********1C6**********" << endl;
+cerr<< "**********ZEBRASSSSSS**********" << endl;
+
+
+        while(1)
+        { // Wait for a SYN ACK to come back.
+            while (MinetGetNextEvent(event, timeout) == 0)
+            {
+                if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
+                {
+                    if (event.handle == mux)
+                    {
+                        /* * * * * * * * * * * * * * * * * *\
+                         *            SEND ACK             *
+                        \* * * * * * * * * * * * * * * * * */
+
+                        cerr << "U G0t a mux 3vent" << endl;
+
+                        Packet mux_packet; // Receipt packet
+                        MinetReceive(mux, mux_packet); // Receive packet
+
+                        unsigned short length = TCPHeader::EstimateTCPHeaderLength(mux_packet);    // Estimate length
+                        mux_packet.ExtractHeaderFromPayload<TCPHeader>(length);    // Get the Header from the packet
+
+                        TCPHeader tcp_header; // For storing the TCP header
+                        tcp_header = mux_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet
+
+                        IPHeader ip_header;    // For holding the IP header
+                        ip_header = mux_packet.FindHeader(Headers::IPHeader);    // Get the IP header from the MUX packet
+
+                        unsigned char f = 0;    // To hold the flags from the packet
+                        unsigned char cap_flags = 0;
+
+                        tcp_header.GetFlags(f); // Assign f with flags received from TCP Header
+
+                        unsigned int ack_num = 0;
+                        unsigned int seq_num = 0;
+
+                        tcp_header.GetSeqNum(seq_num);
+
+                        Packet to_send;    // Declare the response packet
+                        IPHeader iph;    // Holds the IP Header
+
+                        IPAddress temp;        // hold the IP Address for switching around
+                        ip_header.GetSourceIP(temp); // Should give us the source
+                        iph.SetDestIP(temp);    // Set the destination IP --- NETLAB-3
+                        ip_header.GetDestIP(temp); // Should give us the source
+                        iph.SetSourceIP(temp);    // Set the source IP --- my IP Address
+
+                        iph.SetProtocol(IP_PROTO_TCP);    // Set protocol to TCP
+
+                        iph.SetTotalLength(IP_HEADER_BASE_LENGTH + TCP_HEADER_BASE_LENGTH);
+                        to_send.PushFrontHeader(iph);    // Add the IPHeader into the packet
+
+                        TCPHeader new_tcphead;    // Holds the TCP Header
+
+                        if (IS_SYN(f) && IS_ACK(f))
+                        {
+                            seq_num = seq_num + 1;
+
+                            new_tcphead.SetSeqNum(ack_num, to_send);
+                            new_tcphead.SetAckNum(seq_num, to_send);
+
+                            SET_ACK(cap_flags);
+
+                            cerr << "\nSYN ACK\n" << tcp_header << endl;
+                        }
+                        else
+                        {
+                            cerr << "This should never happen!" << endl;
+                        }
+
+                        new_tcphead.SetSourcePort(src_port, to_send);
+                        new_tcphead.SetDestPort(dest_port, to_send);
+
+                        new_tcphead.SetWinSize(100, to_send);
+                        new_tcphead.SetUrgentPtr(0, to_send);
+
+                        new_tcphead.SetFlags(cap_flags, to_send); // Set the flag in the header
+
+                        new_tcphead.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_send);
+
+                        new_tcphead.RecomputeChecksum(to_send);
+
+                        to_send.PushBackHeader(new_tcphead); // Push the header into the packet
+
+                        cerr << "I'm sending the ACK" << endl;
+                        MinetSend(mux, to_send);
+                        return;
+
+                    }
+                }
+            }
+        }
     }
 	else if (!is_client)	// If operating as the server
 	{
