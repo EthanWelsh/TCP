@@ -110,9 +110,13 @@ int main(int argc, char *argv[])
 				recv_iph.GetSourceIP(source);	// This will need to be the destination
 				IPAddress dest;
 				recv_iph.GetDestIP(dest);	// This will need to be the source
-				if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
+
+                unsigned short my_port = 0;
+                recv_tcph.GetSourcePort(my_port);
+
+                if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
 				{
-					handshake(dest, 5050, source, 5050, seq_num, ack_num, recv_flags, false);
+					handshake(source, 5050 , dest, my_port , seq_num, ack_num, recv_flags, false);
 				}
 			}
 			if (event.handle == sock)
