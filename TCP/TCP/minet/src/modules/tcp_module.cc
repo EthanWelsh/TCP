@@ -15,6 +15,7 @@
 //void build_packet(Packet &, ConnectionToStateMapping<TCPState> &, int , int , bool);
 void handshake(IPAddress, int, IPAddress, int, int, int, unsigned char, bool);
 void build_packet(Packet &, IPAddress, int, IPAddress, int, int, int, int, int);
+void server(IPAddress, int, IPAddress, int, int, int);
 
 #include <iostream>
 
@@ -119,19 +120,37 @@ int main(int argc, char *argv[])
 
                 if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
 				{
-					handshake(source, 5050, dest, my_port, seq_num, ack_num, recv_flags, false);
+
+                    cerr<<"Nice to meet you..."<<endl;
+					handshake(source, 8080, dest, my_port, seq_num, ack_num, recv_flags, false);
+                    cerr<<"NEVER"<<endl;
                     ack_num = 3;
 				}
-                else
+                else if (IS_ACK(recv_flags))
                 { // It's a data packet
 
-                    cerr<<"I got a data packet."<<endl;
+                    cerr<<"Got an ACK... Entering server loop."<<endl;
                     Packet ack_packet;
 
+                    server(dest, my_port, source, 8080, seq_num, 0);
 
-                    build_packet(ack_packet, source, my_port, dest, ACK, 5050, seq_num, 2, 0);
-                    MinetSend(mux, ack_packet);
-                    cerr<<"Here's the packet"<<ack_packet<<endl;
+
+
+
+                    //build_packet(ack_packet, source, my_port, dest, ACK, 8080, seq_num, 2, 0);
+                    //MinetSend(mux, ack_packet);
+
+                    /*cerr<<"---------------------------------------------------"<<endl;
+                    cerr<<"---------------------------------------------------"<<endl;
+                    cerr<<"Packet"<<ack_packet<<endl;
+                    cerr<<"---------------------------------------------------"<<endl;
+                    cerr<<"IPH"<<recv_iph<<endl;
+                    cerr<<"---------------------------------------------------"<<endl;
+                    cerr<<"TCPH"<<recv_tcph<<endl;
+                    cerr<<"---------------------------------------------------"<<endl;
+                    cerr<<"---------------------------------------------------"<<endl;*/
+
+
                 }
 			}
 			if (event.handle == sock)
@@ -166,7 +185,7 @@ int main(int argc, char *argv[])
 							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
 							conn_list.push_back(new_CTSM);
 
-							handshake("192.168.128.1", 5050, "192.168.42.8", 5050, 0, 0, 0, true);
+							handshake("192.168.128.1", 8080, "192.168.42.8", 8080, 0, 0, 0, true);
 							for(;;);
 							
 							MinetSend(mux, recv_packet);
@@ -206,7 +225,7 @@ int main(int argc, char *argv[])
 
 
 
-void build_packet(Packet &to_build, IPAddress src_ip, int src_port,  IPAddress dest_ip, int packet_type, int dest_port, int seq_num, int ack_num, int data_amount)
+void build_packet(Packet &to_build, IPAddress src_ip, int src_port, IPAddress dest_ip, int packet_type, int dest_port, int seq_num, int ack_num, int data_amount)
 {
     unsigned char alerts = 0;
     int packet_size = data_amount + TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
@@ -219,7 +238,7 @@ void build_packet(Packet &to_build, IPAddress src_ip, int src_port,  IPAddress d
     new_ipheader.SetTotalLength(packet_size);
     new_ipheader.SetProtocol(IP_PROTO_TCP);
     to_build.PushFrontHeader(new_ipheader);
-    cerr << "\nNew ipheader: \n" << new_ipheader << endl;
+    //cerr << "\nNew ipheader: \n" << new_ipheader << endl;
 
     new_tcpheader.SetSourcePort(src_port, to_build);
     new_tcpheader.SetDestPort(dest_port, to_build);
@@ -287,9 +306,11 @@ void build_packet(Packet &to_build, IPAddress src_ip, int src_port,  IPAddress d
 
     new_tcpheader.RecomputeChecksum(to_build);
 
+    new_tcpheader.SetSeqNum(seq_num, to_build);
+
     // Push the header into the packet
     to_build.PushBackHeader(new_tcpheader);
-    cerr<< "---------------Packet is built------------" << endl;
+    //cerr<< "---------------Packet is built------------" << endl;
 }
 
 
@@ -538,6 +559,9 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 		unsigned char new_flags = 0;
 		// This part sets the flags
 
+
+
+
         if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
 		{
 			SET_SYN(new_flags);
@@ -545,6 +569,10 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 
 			new_tcph.SetSeqNum(1, to_send);
 			new_tcph.SetAckNum(seq_num+1, to_send);
+
+            cerr<<"Recieved a SYN as server..."<<endl;
+
+
 		}
 		else if(IS_SYN(recv_flags) && IS_ACK(recv_flags)) // ___SYN-ACK___
 		{
@@ -555,8 +583,12 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 
 			SET_ACK(new_flags);
 		}
-		else if(IS_ACK(recv_flags) && !IS_SYN(recv_flags)) // ___ACK___
+		else if(IS_ACK(recv_flags)) // ___ACK___
 		{
+            cerr<<"I recieved an ACK in the handshake, so we're entering the server loop"<<endl;
+            server(src_ip, src_port, dest_ip, dest_port, seq_num, ack_num);
+            cerr<<"You probably shouldn't see this message"<<endl;
+
 			/*// Build a packet
 			Packet stamped;
 			// Add in data --- "Hello World"
@@ -602,4 +634,81 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 
 		MinetSend(mux, to_send);
 	}
+}
+
+void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num)
+{ // When we get an ACK, we send it here, and this deals with it.
+
+
+    cerr<<"Daa you daa dabadoo dat dat"<<endl;
+    MinetEvent event;
+    int timeout = 1;
+
+    cerr<<"GOT AN ACK SO I'M SENDING SOME SWEET, SWEET, DATA."<<endl;
+
+
+    char *data = "hello world";
+    Buffer *b = new Buffer(data, 12);
+    Packet data_packet(*b);
+
+    build_packet(data_packet, src_ip, 8080, dest_ip, 0, src_port, 2, 0, 11);
+    MinetSend(mux, data_packet);
+
+
+    while(1)
+    { // Wait for a SYN ACK to come back.
+        while (MinetGetNextEvent(event, timeout) == 0)
+        {
+            if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
+            {
+                if (event.handle == mux)
+                { // This is automatically a ACK, so it's time for us to send some data.
+
+                    cerr<<"In the loop, waiting for more ACKS."<<endl;
+                    Packet ack_packet; // Receipt packet
+                    MinetReceive(mux, ack_packet); // Receive packet
+
+                    unsigned short length = TCPHeader::EstimateTCPHeaderLength(ack_packet);    // Estimate length
+                    ack_packet.ExtractHeaderFromPayload<TCPHeader>(length);    // Get the Header from the packet
+
+                    TCPHeader tcp_header; // For storing the TCP header
+                    tcp_header = ack_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet
+
+                    IPHeader ip_header;    // For holding the IP header
+                    ip_header = ack_packet.FindHeader(Headers::IPHeader);    // Get the IP header from the MUX packet
+
+                    unsigned char f = 0;    // To hold the flags from the packet
+                    unsigned char cap_flags = 0;
+
+                    tcp_header.GetFlags(f); // Assign f with flags received from TCP Header
+
+
+                    if(IS_ACK(f))
+                    {
+                        cerr<<"GOT AN ACK SO I'M SENDING SOME SWEET, SWEET, DATA."<<endl;
+                        char *data = "hello world";
+                        Buffer *b = new Buffer(data, 12);
+                        Packet data_packet(*b);
+
+                        build_packet(data_packet, src_ip, 8080, dest_ip, 0, src_port, seq_num++, 0, 11);
+
+                        MinetSend(mux, data_packet);
+                        // Send up to the sock layer
+
+                    }
+                    else
+                    {
+                        cerr<<"Unexpected incoming packet arrived at server."<<endl;
+                    }
+
+
+
+
+
+
+                }
+
+            }
+        }
+    }
 }
