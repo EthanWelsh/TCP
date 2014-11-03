@@ -12,8 +12,9 @@
 #include "../libminet/tcpstate.h"
 #include "ip.h"
 
-void build_packet(Packet &, ConnectionToStateMapping<TCPState> &, int , int , bool);
+//void build_packet(Packet &, ConnectionToStateMapping<TCPState> &, int , int , bool);
 void handshake(IPAddress, int, IPAddress, int, int, int, unsigned char, bool);
+void build_packet(Packet &, IPAddress, int, IPAddress, int, int, int, int, int);
 
 #include <iostream>
 
@@ -66,21 +67,24 @@ int main(int argc, char *argv[])
 
     cerr<<"About to enter the enent loop."<<endl;
 
+    unsigned int ack_num = 0;
+    unsigned int seq_num = 0;
+
 	while (MinetGetNextEvent(event, timeout) == 0)
 	{
 		if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
 		{
 			if (event.handle == mux)
 			{
-            /*
-             * This event describes anything that comes from below. Any packets that are received, be
-             * they SYNs, ACKs, SYN ACks, or just regular data packets will be processed inside of this
-             * event loop.
-             *
-             * This is also where the server will initiate its connections: it will receive a packet
-             * from the client, and it will send a reply using its IP and Port # as the source, and the
-             * IP and port number from the incoming packet as the destination.
-             */
+                /*
+                 * This event describes anything that comes from below. Any packets that are received, be
+                 * they SYNs, ACKs, SYN ACks, or just regular data packets will be processed inside of this
+                 * event loop.
+                 *
+                 * This is also where the server will initiate its connections: it will receive a packet
+                 * from the client, and it will send a reply using its IP and Port # as the source, and the
+                 * IP and port number from the incoming packet as the destination.
+                 */
 				// ip packet has arrived!
                 cerr<<"I got a mux event."<<endl;
                 SockRequestResponse request;
@@ -102,8 +106,7 @@ int main(int argc, char *argv[])
 				unsigned char recv_flags = 0;	// To hold the flags from the packet
 				recv_tcph.GetFlags(recv_flags); // Assign with flags received from TCP Header
 				
-				unsigned int ack_num = 0;
-				unsigned int seq_num = 0;
+
 				recv_tcph.GetSeqNum(seq_num);
 				
 				IPAddress source;
@@ -116,18 +119,30 @@ int main(int argc, char *argv[])
 
                 if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
 				{
-					handshake(source, 5050 , dest, my_port , seq_num, ack_num, recv_flags, false);
+					handshake(source, 5050, dest, my_port, seq_num, ack_num, recv_flags, false);
+                    ack_num = 3;
 				}
+                else
+                { // It's a data packet
+
+                    cerr<<"I got a data packet."<<endl;
+                    Packet ack_packet;
+
+
+                    build_packet(ack_packet, source, my_port, dest, ACK, 5050, seq_num, 2, 0);
+                    MinetSend(mux, ack_packet);
+                    cerr<<"Here's the packet"<<ack_packet<<endl;
+                }
 			}
 			if (event.handle == sock)
 			{
-            /*
-             * This is how the application layer talks to us. When a connection is requested, it'll
-             * come from the sock. Once we see something coming from the sock, we will build a SYN
-             * packet using our IPAddress and Port # as the source, and the IP and Port # specified
-             * in the request. We'll build a SYN packet from this information, and send it out to the
-             * server. From then on, everything will be handled in the MUX.
-             */
+                /*
+                 * This is how the application layer talks to us. When a connection is requested, it'll
+                 * come from the sock. Once we see something coming from the sock, we will build a SYN
+                 * packet using our IPAddress and Port # as the source, and the IP and Port # specified
+                 * in the request. We'll build a SYN packet from this information, and send it out to the
+                 * server. From then on, everything will be handled in the MUX.
+                 */
 
                 cerr<<"I got a sock event."<<endl;
 
@@ -188,31 +203,32 @@ int main(int argc, char *argv[])
     return 0;	// Program finished
 }
 
-void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mapping, int packet_type, int data_amount, bool status)
+
+
+
+void build_packet(Packet &to_build, IPAddress src_ip, int src_port,  IPAddress dest_ip, int packet_type, int dest_port, int seq_num, int ack_num, int data_amount)
 {
-    cerr<< "---------------Building a packet to send off------------" << endl;
     unsigned char alerts = 0;
     int packet_size = data_amount + TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
 
     IPHeader new_ipheader;
     TCPHeader new_tcpheader;
 
-    new_ipheader.SetSourceIP(c_mapping.connection.src);
-    new_ipheader.SetDestIP(c_mapping.connection.dest);
+    new_ipheader.SetSourceIP(src_ip);
+    new_ipheader.SetDestIP(dest_ip);
     new_ipheader.SetTotalLength(packet_size);
     new_ipheader.SetProtocol(IP_PROTO_TCP);
     to_build.PushFrontHeader(new_ipheader);
-	cerr << "\nNew ipheader: \n" << new_ipheader << endl;
-	
-    new_tcpheader.SetSourcePort(c_mapping.connection.srcport, to_build);
-    new_tcpheader.SetDestPort(c_mapping.connection.destport, to_build);
+    cerr << "\nNew ipheader: \n" << new_ipheader << endl;
+
+    new_tcpheader.SetSourcePort(src_port, to_build);
+    new_tcpheader.SetDestPort(dest_port, to_build);
     new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_build);
 
-    new_tcpheader.SetAckNum(c_mapping.state.GetLastRecvd(),to_build);
-    new_tcpheader.SetWinSize(c_mapping.state.GetRwnd(), to_build);
+    new_tcpheader.SetAckNum(ack_num,to_build);
+    new_tcpheader.SetWinSize(data_amount, to_build);
     new_tcpheader.SetUrgentPtr(0, to_build);
 
-    // Set the alerat variable
     switch (packet_type)
     {
         case SYN:
@@ -220,46 +236,46 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
             SET_SYN(alerts);
             cerr << "It is a SYN!" << endl;
         }
-		break;
+            break;
         case ACK:
         {
             SET_ACK(alerts);
             cerr << "It is an ACK!" << endl;
         }
-		break;
+            break;
         case SYN_ACK:
         {
             SET_ACK(alerts);
             SET_SYN(alerts);
             cerr << "It is a HEADERTYPE_SYNACK!" << endl;
         }
-		break;
-		case PSHACK:
-		{ 
-			SET_PSH(alerts);
-			SET_ACK(alerts);
-			cerr << "It is a HEADERTYPE_PSHACK!" << endl;
-		}
-		break;
+            break;
+        case PSHACK:
+        {
+            SET_PSH(alerts);
+            SET_ACK(alerts);
+            cerr << "It is a HEADERTYPE_PSHACK!" << endl;
+        }
+            break;
         case FIN:
         {
             SET_FIN(alerts);
             cerr << "It is a FIN!" << endl;
         }
-		break;
+            break;
         case FIN_ACK:
         {
             SET_FIN(alerts);
             SET_ACK(alerts);
             cerr << "It is a FINACK!" << endl;
         }
-		break;
+            break;
         case RST:
         {
             SET_RST(alerts);
             cerr << "It is a RESET!" << endl;
         }
-		break;
+            break;
         default:
         {
             break;
@@ -275,6 +291,102 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mappin
     to_build.PushBackHeader(new_tcpheader);
     cerr<< "---------------Packet is built------------" << endl;
 }
+
+
+
+
+
+
+
+
+
+//void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mapping, int packet_type, int data_amount, bool status)
+//{
+//    cerr<< "---------------Building a packet to send off------------" << endl;
+//    unsigned char alerts = 0;
+//    int packet_size = data_amount + TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
+//
+//    IPHeader new_ipheader;
+//    TCPHeader new_tcpheader;
+//
+//    new_ipheader.SetSourceIP(c_mapping.connection.src);
+//    new_ipheader.SetDestIP(c_mapping.connection.dest);
+//    new_ipheader.SetTotalLength(packet_size);
+//    new_ipheader.SetProtocol(IP_PROTO_TCP);
+//    to_build.PushFrontHeader(new_ipheader);
+//	cerr << "\nNew ipheader: \n" << new_ipheader << endl;
+//
+//    new_tcpheader.SetSourcePort(c_mapping.connection.srcport, to_build);
+//    new_tcpheader.SetDestPort(c_mapping.connection.destport, to_build);
+//    new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_build);
+//
+//    new_tcpheader.SetAckNum(c_mapping.state.GetLastRecvd(),to_build);
+//    new_tcpheader.SetWinSize(c_mapping.state.GetRwnd(), to_build);
+//    new_tcpheader.SetUrgentPtr(0, to_build);
+//
+//    // Set the alerat variable
+//    switch (packet_type)
+//    {
+//        case SYN:
+//        {
+//            SET_SYN(alerts);
+//            cerr << "It is a SYN!" << endl;
+//        }
+//		break;
+//        case ACK:
+//        {
+//            SET_ACK(alerts);
+//            cerr << "It is an ACK!" << endl;
+//        }
+//		break;
+//        case SYN_ACK:
+//        {
+//            SET_ACK(alerts);
+//            SET_SYN(alerts);
+//            cerr << "It is a HEADERTYPE_SYNACK!" << endl;
+//        }
+//		break;
+//		case PSHACK:
+//		{
+//			SET_PSH(alerts);
+//			SET_ACK(alerts);
+//			cerr << "It is a HEADERTYPE_PSHACK!" << endl;
+//		}
+//		break;
+//        case FIN:
+//        {
+//            SET_FIN(alerts);
+//            cerr << "It is a FIN!" << endl;
+//        }
+//		break;
+//        case FIN_ACK:
+//        {
+//            SET_FIN(alerts);
+//            SET_ACK(alerts);
+//            cerr << "It is a FINACK!" << endl;
+//        }
+//		break;
+//        case RST:
+//        {
+//            SET_RST(alerts);
+//            cerr << "It is a RESET!" << endl;
+//        }
+//		break;
+//        default:
+//        {
+//            break;
+//        }
+//    }
+//
+//    // Set the flag
+//    new_tcpheader.SetFlags(alerts, to_build);
+//
+//    new_tcpheader.RecomputeChecksum(to_build);
+//
+//    // Push the header into the packet
+//    to_build.PushBackHeader(new_tcpheader);
+//    cerr<< "---------------Packet is built------------" << endl;
+//}
 
 void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num, unsigned char recv_flags, bool is_client)
 {
@@ -305,8 +417,6 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
         tcph.SetDestPort(dest_port, p);
 
         tcph.SetSeqNum(1, p);
-        //tcph.SetAckNum(seq_num + 1, p); //TODO
-
 
         tcph.SetWinSize(100, p);
         tcph.SetUrgentPtr(0, p);

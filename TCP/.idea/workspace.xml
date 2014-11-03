@@ -22,36 +22,18 @@
     <favorites_list name="TCP" />
   </component>
   <component name="FileEditorManager">
-    <splitter split-orientation="horizontal" split-proportion="0.5">
-      <split-first>
-        <leaf>
-          <file leaf-file-name="tcp_module.cc" pinned="false" current="true" current-in-tab="true">
-            <entry file="file://$PROJECT_DIR$/TCP/minet/src/modules/tcp_module.cc">
-              <provider selected="true" editor-type-id="text-editor">
-                <state vertical-scroll-proportion="0.5833333" vertical-offset="1770" max-vertical-offset="7515">
-                  <caret line="153" column="62" selection-start-line="153" selection-start-column="62" selection-end-line="153" selection-end-column="74" />
-                  <folding />
-                </state>
-              </provider>
-            </entry>
-          </file>
-        </leaf>
-      </split-first>
-      <split-second>
-        <leaf>
-          <file leaf-file-name="tcp_module.cc" pinned="false" current="false" current-in-tab="true">
-            <entry file="file://$PROJECT_DIR$/TCP/minet/src/modules/tcp_module.cc">
-              <provider selected="true" editor-type-id="text-editor">
-                <state vertical-scroll-proportion="-0.4211663" vertical-offset="1485" max-vertical-offset="7515">
-                  <caret line="73" column="13" selection-start-line="68" selection-start-column="4" selection-end-line="73" selection-end-column="13" />
-                  <folding />
-                </state>
-              </provider>
-            </entry>
-          </file>
-        </leaf>
-      </split-second>
-    </splitter>
+    <leaf>
+      <file leaf-file-name="tcp_module.cc" pinned="false" current="true" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/TCP/minet/src/modules/tcp_module.cc">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.7028754" vertical-offset="1335" max-vertical-offset="9165">
+              <caret line="133" column="106" selection-start-line="133" selection-start-column="64" selection-end-line="133" selection-end-column="64" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
   </component>
   <component name="FindManager">
     <FindUsagesManager>
@@ -66,9 +48,9 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="-1920" />
+    <option name="x" value="-1869" />
     <option name="y" value="-425" />
-    <option name="width" value="1920" />
+    <option name="width" value="1869" />
     <option name="height" value="1057" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
@@ -165,7 +147,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-1920" y="-425" width="1920" height="1057" extended-state="6" />
+    <frame x="-1869" y="-425" width="1869" height="1057" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="Palette&#9;" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -202,6 +184,22 @@
     <breakpoint-manager />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/TCP/minet/src/modules/tcp_module.cc">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="7485">
+          <caret line="73" column="13" selection-start-line="68" selection-start-column="4" selection-end-line="73" selection-end-column="13" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/TCP/minet/src/modules/tcp_module.cc">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0" vertical-offset="1095" max-vertical-offset="7515">
+          <caret line="73" column="13" selection-start-line="68" selection-start-column="4" selection-end-line="73" selection-end-column="13" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/TCP/minet/src/modules/tcp_module.cc">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0" vertical-offset="1095" max-vertical-offset="7755">
@@ -244,8 +242,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/TCP/minet/src/modules/tcp_module.cc">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.5833333" vertical-offset="1770" max-vertical-offset="7515">
-          <caret line="153" column="62" selection-start-line="153" selection-start-column="62" selection-end-line="153" selection-end-column="74" />
+        <state vertical-scroll-proportion="0.7028754" vertical-offset="1335" max-vertical-offset="9165">
+          <caret line="133" column="106" selection-start-line="133" selection-start-column="64" selection-end-line="133" selection-end-column="64" />
           <folding />
         </state>
       </provider>
