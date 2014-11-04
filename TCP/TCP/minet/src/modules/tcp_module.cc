@@ -611,7 +611,7 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 		else if(IS_ACK(recv_flags)) // ___ACK___
 		{
             cerr<<"I recieved an ACK in the handshake, so we're entering the server loop"<<endl;
-            server(src_ip, src_port, dest_ip, dest_port, seq_num, ack_num);
+            server(src_ip, src_port, dest_ip, dest_port, 3, ack_num);
             cerr<<"You probably shouldn't see this message"<<endl;
 
 			/*// Build a packet
@@ -693,7 +693,7 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, in
                     ip_header = data_packet.FindHeader(Headers::IPHeader);    // Get the IP header from the MUX packet
 
                     Packet ack_packet;
-                    build_packet(ack_packet, src_ip, 8080,     dest_ip, ACK,           src_port,  seq_num, ack_num, 0);
+                    build_packet(ack_packet, src_ip, 8080,     dest_ip, ACK,           src_port,  2, seq_num++, 0);
                                 //&to_build, src_ip, src_port, dest_ip, packet_type,   dest_port, seq_num, ack_num, data_amount)
 
                     MinetSend(mux, ack_packet);
