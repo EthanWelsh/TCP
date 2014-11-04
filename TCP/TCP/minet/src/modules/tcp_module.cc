@@ -158,24 +158,6 @@ int main(int argc, char *argv[])
                     Packet ack_packet;
 
                     server(dest, my_port, source, 8080, seq_num, 0);
-
-
-
-
-                    //build_packet(ack_packet, source, my_port, dest, ACK, 8080, seq_num, 2, 0);
-                    //MinetSend(mux, ack_packet);
-
-                    /*cerr<<"---------------------------------------------------"<<endl;
-                    cerr<<"---------------------------------------------------"<<endl;
-                    cerr<<"Packet"<<ack_packet<<endl;
-                    cerr<<"---------------------------------------------------"<<endl;
-                    cerr<<"IPH"<<recv_iph<<endl;
-                    cerr<<"---------------------------------------------------"<<endl;
-                    cerr<<"TCPH"<<recv_tcph<<endl;
-                    cerr<<"---------------------------------------------------"<<endl;
-                    cerr<<"---------------------------------------------------"<<endl;*/
-
-
                 }
 			}
 			if (event.handle == sock)
@@ -338,101 +320,6 @@ void build_packet(Packet &to_build, IPAddress src_ip, int src_port, IPAddress de
     //cerr<< "---------------Packet is built------------" << endl;
 }
 
-
-
-
-
-
-
-
-
-//void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &c_mapping, int packet_type, int data_amount, bool status)
-//{
-//    cerr<< "---------------Building a packet to send off------------" << endl;
-//    unsigned char alerts = 0;
-//    int packet_size = data_amount + TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
-//
-//    IPHeader new_ipheader;
-//    TCPHeader new_tcpheader;
-//
-//    new_ipheader.SetSourceIP(c_mapping.connection.src);
-//    new_ipheader.SetDestIP(c_mapping.connection.dest);
-//    new_ipheader.SetTotalLength(packet_size);
-//    new_ipheader.SetProtocol(IP_PROTO_TCP);
-//    to_build.PushFrontHeader(new_ipheader);
-//	cerr << "\nNew ipheader: \n" << new_ipheader << endl;
-//
-//    new_tcpheader.SetSourcePort(c_mapping.connection.srcport, to_build);
-//    new_tcpheader.SetDestPort(c_mapping.connection.destport, to_build);
-//    new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_build);
-//
-//    new_tcpheader.SetAckNum(c_mapping.state.GetLastRecvd(),to_build);
-//    new_tcpheader.SetWinSize(c_mapping.state.GetRwnd(), to_build);
-//    new_tcpheader.SetUrgentPtr(0, to_build);
-//
-//    // Set the alerat variable
-//    switch (packet_type)
-//    {
-//        case SYN:
-//        {
-//            SET_SYN(alerts);
-//            cerr << "It is a SYN!" << endl;
-//        }
-//		break;
-//        case ACK:
-//        {
-//            SET_ACK(alerts);
-//            cerr << "It is an ACK!" << endl;
-//        }
-//		break;
-//        case SYN_ACK:
-//        {
-//            SET_ACK(alerts);
-//            SET_SYN(alerts);
-//            cerr << "It is a HEADERTYPE_SYNACK!" << endl;
-//        }
-//		break;
-//		case PSHACK:
-//		{
-//			SET_PSH(alerts);
-//			SET_ACK(alerts);
-//			cerr << "It is a HEADERTYPE_PSHACK!" << endl;
-//		}
-//		break;
-//        case FIN:
-//        {
-//            SET_FIN(alerts);
-//            cerr << "It is a FIN!" << endl;
-//        }
-//		break;
-//        case FIN_ACK:
-//        {
-//            SET_FIN(alerts);
-//            SET_ACK(alerts);
-//            cerr << "It is a FINACK!" << endl;
-//        }
-//		break;
-//        case RST:
-//        {
-//            SET_RST(alerts);
-//            cerr << "It is a RESET!" << endl;
-//        }
-//		break;
-//        default:
-//        {
-//            break;
-//        }
-//    }
-//
-//    // Set the flag
-//    new_tcpheader.SetFlags(alerts, to_build);
-//
-//    new_tcpheader.RecomputeChecksum(to_build);
-//
-//    // Push the header into the packet
-//    to_build.PushBackHeader(new_tcpheader);
-//    cerr<< "---------------Packet is built------------" << endl;
-//}
 
 void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num, unsigned char recv_flags, bool is_client)
 {
@@ -611,38 +498,14 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 		else if(IS_ACK(recv_flags)) // ___ACK___
 		{
             cerr<<"I recieved an ACK in the handshake, so we're entering the server loop"<<endl;
-            server(src_ip, src_port, dest_ip, dest_port, 3, ack_num);
-            cerr<<"You probably shouldn't see this message"<<endl;
+            server(                 src_ip,     src_port,           dest_ip,     dest_port,     3,           ack_num);
+            //void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num)
 
-			/*// Build a packet
-			Packet stamped;
-			// Add in data --- "Hello World"
-			// Update ACK number
-			// Update sequence number
-			// Recompute checksum
-			tcph.RecomputeChecksum(p);
-			// Send packet
-			MinetSend(mux, p); // Send the packet to mux
-			sleep(1);
-			MinetSend(mux, p);
-			return;*/
+
+            cerr<<"You probably shouldn't see this message"<<endl;
 		}
 		unsigned short theRealPort = 0;
-/*
-		if(IS_SYN(recv_flags) && !IS_ACK(recv_flags))
-		{
-			
-			recv_tcph.GetSourcePort(theRealPort);
-			new_tcph.SetDestPort(theRealPort, to_send);
-			new_tcph.SetSourcePort(src_port, to_send);
-		}
-		else
-		{
-			new_tcph.SetSourcePort(src_port, to_send);
-			new_tcph.SetDestPort(dest_port, to_send);
-		}
-		
-*/
+
 		new_tcph.SetSourcePort(src_port, to_send);
 		new_tcph.SetDestPort(dest_port, to_send);
 			
@@ -692,13 +555,18 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, in
                     IPHeader ip_header;    // For holding the IP header
                     ip_header = data_packet.FindHeader(Headers::IPHeader);    // Get the IP header from the MUX packet
 
+                    Buffer d = data_packet.GetPayload();
+                    cerr<<"Payload: "<<d<<endl;
+
+
+
                     Packet ack_packet;
-                    build_packet(ack_packet, src_ip, 8080,     dest_ip, ACK,           src_port,  2, seq_num++, 0);
+                    build_packet(ack_packet, src_ip, 8080,     dest_ip, ACK,           src_port,  2,       (seq_num+2), 100);
                                 //&to_build, src_ip, src_port, dest_ip, packet_type,   dest_port, seq_num, ack_num, data_amount)
 
                     MinetSend(mux, ack_packet);
 
-                    cerr<<"DATA PACKET SENT!!!!!!!"<<endl;
+                    cerr<<"ACK SENT!!!!!!!"<<endl;
                 }
 
             }
