@@ -110,7 +110,7 @@ void TCPHeader::SetAckNum(const unsigned int &n, const Packet &p)
 void TCPHeader::GetHeaderLen(unsigned char &len) const
 {
     GetData((char *)&len, 1, 12);
-    len = (len & 0xf0) >> 2;
+    len = (len >> 4) & 0xf;
 
 }
 
