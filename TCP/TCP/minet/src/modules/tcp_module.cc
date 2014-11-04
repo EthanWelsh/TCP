@@ -16,6 +16,7 @@
 void handshake(IPAddress, int, IPAddress, int, int, int, unsigned char, bool);
 void build_packet(Packet &, IPAddress, int, IPAddress, int, int, int, int, int);
 void server(IPAddress, int, IPAddress, int, int, int);
+void client(IPAddress, int, IPAddress, int);
 
 #include <iostream>
 
@@ -450,6 +451,9 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 
                         cerr << "I'm sending the ACK" << endl;
                         MinetSend(mux, to_send);
+
+                        server(src_ip, src_port, dest_ip, dest_port, 3);
+
                         return;
 
                     }
@@ -524,6 +528,19 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 	}
 }
 
+
+void client(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port)
+{
+    cerr<<"Entered into server loop. Sending hello world!!!!"<<endl;
+    *data = "hello world";
+    Buffer *b = new Buffer(data, 12);
+    Packet data_packet(*b);
+
+    build_packet(data_packet, src_ip, 8080,     dest_ip, 0,           src_port,  2,       0,       11);
+                 //&to_build, src_ip, src_port, dest_ip, packet_type, dest_port, seq_num, ack_num, data_amount)
+    MinetSend(mux, data_packet);
+}
+
 void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num)
 { // When we get an ACK, we send it here, and this deals with it.
 
@@ -557,8 +574,6 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, in
 
                     Buffer d = data_packet.GetPayload();
                     cerr<<"Payload: "<<d<<endl;
-
-
 
                     Packet ack_packet;
                     build_packet(ack_packet, src_ip, 8080,     dest_ip, ACK,           src_port,  2,       (seq_num+2), 100);
