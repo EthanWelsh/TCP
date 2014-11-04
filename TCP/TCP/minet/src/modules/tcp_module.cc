@@ -452,7 +452,7 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
                         cerr << "I'm sending the ACK" << endl;
                         MinetSend(mux, to_send);
 
-                        server(src_ip, src_port, dest_ip, dest_port, 3);
+                        client(src_ip, src_port, dest_ip, dest_port);
 
                         return;
 
@@ -532,7 +532,8 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 void client(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port)
 {
     cerr<<"Entered into server loop. Sending hello world!!!!"<<endl;
-    *data = "hello world";
+
+    char *data = "hello world";
     Buffer *b = new Buffer(data, 12);
     Packet data_packet(*b);
 
