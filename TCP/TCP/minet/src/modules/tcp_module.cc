@@ -37,6 +37,8 @@ MinetHandle mux; // Mutex to ensure not preempted
 MinetHandle sock; // Socket
 
 
+int bad_programming;
+
 /*
  * MILESTONE 2
 
@@ -486,6 +488,8 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 			new_tcph.SetSeqNum(1, to_send);
 			new_tcph.SetAckNum(seq_num+1, to_send);
 
+            bad_programming = seq_num+1;
+
             cerr<<"Recieved a SYN as server..."<<endl;
 
 
@@ -578,10 +582,10 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, in
 
                     Packet ack_packet;
 
-                    cerr<<"@@@   The size is "<<data_packet.GetPayload().GetSize()<<endl;
+                    cerr<<"@~@~@   The size is "<<data_packet.GetPayload().GetSize()<<endl;
 
-                    ack_num = 2 + data_packet.GetPayload().GetSize();
-
+                    ack_num = bad_programming + data_packet.GetPayload().GetSize();
+                    cerr<<"The ack_num is: "<< ack_num<<endl;
                     build_packet(ack_packet, src_ip, 8080,     dest_ip, ACK,           src_port,  2,       ack_num, 100);
                                 //&to_build, src_ip, src_port, dest_ip, packet_type,   dest_port, seq_num, ack_num, data_amount)
 
