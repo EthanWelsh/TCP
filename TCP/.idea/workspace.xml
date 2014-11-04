@@ -26,8 +26,8 @@
       <file leaf-file-name="tcp_module.cc" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/TCP/minet/src/modules/tcp_module.cc">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.44602272" vertical-offset="436" max-vertical-offset="11190">
-              <caret line="50" column="85" selection-start-line="50" selection-start-column="85" selection-end-line="50" selection-end-column="85" />
+            <state vertical-scroll-proportion="0.9785714" vertical-offset="9785" max-vertical-offset="10695">
+              <caret line="698" column="45" selection-start-line="698" selection-start-column="45" selection-end-line="698" selection-end-column="45" />
               <folding />
             </state>
           </provider>
@@ -98,6 +98,10 @@
     <property name="recentsLimit" value="5" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/TCP/minet/src/modules/tcp_module.cc" />
     <property name="FullScreen" value="true" />
+    <property name="options.lastSelected" value="appearance" />
+    <property name="options.splitter.main.proportions" value="0.3" />
+    <property name="options.splitter.details.proportions" value="0.2" />
+    <property name="options.searchVisible" value="true" />
   </component>
   <component name="RunManager" selected="Application.TCP">
     <configuration default="false" name="TCP" type="AppleRunConfiguration" factoryName="Application" temporary="true" WORKING_DIR="" PASS_PARENT_ENVS="FALSE" PROJECT_NAME="TCP" TARGET_NAME="TCP" CONFIG_NAME="Debug" SCHEME_NAME="TCP" RUN_TARGET_PROJECT_NAME="TCP" RUN_TARGET_NAME="TCP" MAKE_ACTIVE="TRUE" WAIT_FOR="FALSE">
@@ -249,8 +253,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/TCP/minet/src/modules/tcp_module.cc">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.44602272" vertical-offset="436" max-vertical-offset="11190">
-          <caret line="50" column="85" selection-start-line="50" selection-start-column="85" selection-end-line="50" selection-end-column="85" />
+        <state vertical-scroll-proportion="0.9785714" vertical-offset="9785" max-vertical-offset="10695">
+          <caret line="698" column="45" selection-start-line="698" selection-start-column="45" selection-end-line="698" selection-end-column="45" />
           <folding />
         </state>
       </provider>

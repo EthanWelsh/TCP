@@ -58,7 +58,6 @@ MinetHandle sock; // Socket
  * How we test it:
  * - We'll hardcode a (single) data packet to get sent directly after the ACK that we send to complete the handshake.
  * - After we send the data, we should see the server (NC) ACK our packet back.
- *
  */
 
 
@@ -665,21 +664,11 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num)
 { // When we get an ACK, we send it here, and this deals with it.
 
+    cerr<<"I got the ACK and now the handshake is over. It's time to wait for some data to come in."<<endl;
+    cerr<<"when it does, I'll ACK it back."<<endl;
 
-    cerr<<"Daa you daa dabadoo dat dat"<<endl;
     MinetEvent event;
     int timeout = 1;
-
-    cerr<<"GOT AN ACK SO I'M SENDING SOME SWEET, SWEET, DATA."<<endl;
-
-
-    char *data = "hello world";
-    Buffer *b = new Buffer(data, 12);
-    Packet data_packet(*b);
-
-    build_packet(data_packet, src_ip, 8080, dest_ip, 0, src_port, 2, 0, 11);
-    MinetSend(mux, data_packet);
-
 
     while(1)
     { // Wait for a SYN ACK to come back.
@@ -691,47 +680,25 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, in
                 { // This is automatically a ACK, so it's time for us to send some data.
 
                     cerr<<"In the loop, waiting for more ACKS."<<endl;
-                    Packet ack_packet; // Receipt packet
-                    MinetReceive(mux, ack_packet); // Receive packet
+                    Packet data_packet; // Receipt packet
+                    MinetReceive(mux, data_packet); // Receive packet
 
-                    unsigned short length = TCPHeader::EstimateTCPHeaderLength(ack_packet);    // Estimate length
-                    ack_packet.ExtractHeaderFromPayload<TCPHeader>(length);    // Get the Header from the packet
+                    unsigned short length = TCPHeader::EstimateTCPHeaderLength(data_packet);    // Estimate length
+                    data_packet.ExtractHeaderFromPayload<TCPHeader>(length);    // Get the Header from the packet
 
                     TCPHeader tcp_header; // For storing the TCP header
-                    tcp_header = ack_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet
+                    tcp_header = data_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet
 
                     IPHeader ip_header;    // For holding the IP header
-                    ip_header = ack_packet.FindHeader(Headers::IPHeader);    // Get the IP header from the MUX packet
+                    ip_header = data_packet.FindHeader(Headers::IPHeader);    // Get the IP header from the MUX packet
 
-                    unsigned char f = 0;    // To hold the flags from the packet
-                    unsigned char cap_flags = 0;
+                    Packet ack_packet;
+                    build_packet(ack_packet, src_ip, 8080,     dest_ip, ACK,           src_port,  seq_num, ack_num, 0);
+                                //&to_build, src_ip, src_port, dest_ip, packet_type,   dest_port, seq_num, ack_num, data_amount)
 
-                    tcp_header.GetFlags(f); // Assign f with flags received from TCP Header
+                    MinetSend(mux, ack_packet);
 
-
-                    if(IS_ACK(f))
-                    {
-                        cerr<<"GOT AN ACK SO I'M SENDING SOME SWEET, SWEET, DATA."<<endl;
-                        char *data = "hello world";
-                        Buffer *b = new Buffer(data, 12);
-                        Packet data_packet(*b);
-
-                        build_packet(data_packet, src_ip, 8080, dest_ip, 0, src_port, seq_num++, 0, 11);
-
-                        MinetSend(mux, data_packet);
-
-
-                    }
-                    else
-                    {
-                        cerr<<"Unexpected incoming packet arrived at server."<<endl;
-                    }
-
-
-
-
-
-
+                    cerr<<"DATA PACKET SENT!!!!!!!"<<endl;
                 }
 
             }
