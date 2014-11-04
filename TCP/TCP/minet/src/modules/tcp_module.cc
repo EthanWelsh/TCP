@@ -12,6 +12,7 @@
 #include "../libminet/tcpstate.h"
 #include "ip.h"
 
+
 //void build_packet(Packet &, ConnectionToStateMapping<TCPState> &, int , int , bool);
 void handshake(IPAddress, int, IPAddress, int, int, int, unsigned char, bool);
 void build_packet(Packet &, IPAddress, int, IPAddress, int, int, unsigned int, unsigned int, int);
@@ -150,7 +151,7 @@ int main(int argc, char *argv[])
 				{
 
                     cerr<<"Nice to meet you..."<<endl;
-					handshake(source, 8080, dest, my_port, seq_num, ack_num, recv_flags, false);
+					handshake(source, 9999, dest, my_port, seq_num, ack_num, recv_flags, false);
                     cerr<<"NEVER"<<endl;
                     ack_num = 3;
 				}
@@ -160,7 +161,7 @@ int main(int argc, char *argv[])
                     cerr<<"Got an ACK... Entering server loop."<<endl;
                     Packet ack_packet;
 
-                    server(dest, my_port, source, 8080, seq_num, 0);
+                    server(dest, my_port, source, 9999, seq_num, 0);
                 }
 			}
 			if (event.handle == sock)
@@ -195,7 +196,7 @@ int main(int argc, char *argv[])
 							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
 							conn_list.push_back(new_CTSM);
 
-							handshake("192.168.128.1", 8080, "192.168.42.8", 8080, 0, 0, 0, true);
+							handshake("192.168.128.1", 9999, "192.168.42.8", 9999, 0, 0, 0, true);
 							for(;;);
 							
 							MinetSend(mux, recv_packet);
@@ -255,7 +256,7 @@ void build_packet(Packet &to_build, IPAddress src_ip, int src_port, IPAddress de
     new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_build);
 
     new_tcpheader.SetAckNum(ack_num,to_build);
-    new_tcpheader.SetWinSize(data_amount, to_build);
+    new_tcpheader.SetWinSize(100, to_build);
     new_tcpheader.SetUrgentPtr(0, to_build);
 
     switch (packet_type)
@@ -541,7 +542,7 @@ void client(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port)
     Buffer *b = new Buffer(data, 12);
     Packet data_packet(*b);
 
-    build_packet(data_packet, src_ip, 8080,     dest_ip, 0,           src_port,  2,       0,       11);
+    build_packet(data_packet, src_ip, 9999,     dest_ip, 0,           src_port,  2,       0,       11);
                  //&to_build, src_ip, src_port, dest_ip, packet_type, dest_port, seq_num, ack_num, data_amount)
     MinetSend(mux, data_packet);
 }
@@ -586,7 +587,7 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, in
 
                     ack_num = bad_programming + data_packet.GetPayload().GetSize();
                     cerr<<"The ack_num is: "<< ack_num<<endl;
-                    build_packet(ack_packet, src_ip, 8080,     dest_ip, ACK,           src_port,  2,       ack_num, 100);
+                    build_packet(ack_packet, src_ip, 9999,     dest_ip, ACK,           src_port,  2,       ack_num, 0);
                                 //&to_build, src_ip, src_port, dest_ip, packet_type,   dest_port, seq_num, ack_num, data_amount)
 
                     MinetSend(mux, ack_packet);
