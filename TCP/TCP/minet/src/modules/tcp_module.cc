@@ -36,6 +36,32 @@ MinetHandle mux; // Mutex to ensure not preempted
 MinetHandle sock; // Socket
 
 
+/*
+ * MILESTONE 2
+
+
+ * ************************************************SERVER***************************************************************
+ * - Handshake: We'll wait for a SYN, send back a SYN ACK, then we'll get an ACK.
+ * - Wait for Data: We, the server, NEVER SEND DATA. After we get the ACK, we'll wait for data packets to arrive.
+ * - ACK Data: Once (and every time) a data packet arrives we'll ACK it.
+ *
+ * How we test it:
+ * - We'll NC into our IP on the correct port number
+ * - After we see the handshake go down, we can type into NC and it will send out what we type as data packets.
+ * - We should see our ACKS (from the server side) coming back every time we do this.
+
+ * ************************************************CLIENT***************************************************************
+ * - Handshake: We send SYN, wait for a SYN ACK to come back, and then send an ACK.
+ * - Send Data: Directly after we send the ACK for our handshake, we'll shoot out a data packet with something hardcoded
+ * into it.
+ *
+ * How we test it:
+ * - We'll hardcode a (single) data packet to get sent directly after the ACK that we send to complete the handshake.
+ * - After we send the data, we should see the server (NC) ACK our packet back.
+ *
+ */
+
+
 int main(int argc, char *argv[])
 {
 	ConnectionList<TCPState> conn_list;
@@ -693,7 +719,7 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, in
                         build_packet(data_packet, src_ip, 8080, dest_ip, 0, src_port, seq_num++, 0, 11);
 
                         MinetSend(mux, data_packet);
-                        // Send up to the sock layer
+
 
                     }
                     else
