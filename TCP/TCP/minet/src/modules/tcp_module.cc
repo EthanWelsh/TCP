@@ -14,7 +14,7 @@
 
 //void build_packet(Packet &, ConnectionToStateMapping<TCPState> &, int , int , bool);
 void handshake(IPAddress, int, IPAddress, int, int, int, unsigned char, bool);
-void build_packet(Packet &, IPAddress, int, IPAddress, int, int, int, int, int);
+void build_packet(Packet &, IPAddress, int, IPAddress, int, int, unsigned int, unsigned int, int);
 void server(IPAddress, int, IPAddress, int, int, int);
 void client(IPAddress, int, IPAddress, int);
 
@@ -233,7 +233,7 @@ int main(int argc, char *argv[])
 
 
 
-void build_packet(Packet &to_build, IPAddress src_ip, int src_port, IPAddress dest_ip, int packet_type, int dest_port, int seq_num, int ack_num, int data_amount)
+void build_packet(Packet &to_build, IPAddress src_ip, int src_port, IPAddress dest_ip, int packet_type, int dest_port, unsigned int seq_num, unsigned int ack_num, int data_amount)
 {
     unsigned char alerts = 0;
     int packet_size = data_amount + TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
@@ -404,11 +404,11 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
                         tcp_header.GetSeqNum(seq_num);
 
                         Packet to_send;    // Declare the response packet
-                        IPHeader iph;    // Holds the IP Header
+                        IPHeader iph;     // Holds the IP Header
 
-                        IPAddress temp;        // hold the IP Address for switching around
+                        IPAddress temp;               // hold the IP Address for switching around
                         ip_header.GetSourceIP(temp); // Should give us the source
-                        iph.SetDestIP(temp);    // Set the destination IP --- NETLAB-3
+                        iph.SetDestIP(temp);        // Set the destination IP --- NETLAB-3
                         ip_header.GetDestIP(temp); // Should give us the source
                         iph.SetSourceIP(temp);    // Set the source IP --- my IP Address
 
@@ -577,7 +577,12 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, in
                     cerr<<"Payload: "<<d<<endl;
 
                     Packet ack_packet;
-                    build_packet(ack_packet, src_ip, 8080,     dest_ip, ACK,           src_port,  2,       (seq_num+2), 100);
+
+                    cerr<<"@@@   The size is "<<data_packet.GetPayload().GetSize()<<endl;
+
+                    ack_num = 2 + data_packet.GetPayload().GetSize();
+
+                    build_packet(ack_packet, src_ip, 8080,     dest_ip, ACK,           src_port,  2,       ack_num, 100);
                                 //&to_build, src_ip, src_port, dest_ip, packet_type,   dest_port, seq_num, ack_num, data_amount)
 
                     MinetSend(mux, ack_packet);
