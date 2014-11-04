@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
                     cerr<<"Got an ACK... Entering server loop."<<endl;
                     Packet ack_packet;
 
-                    server(dest, my_port, source, 9999, 1, 0);
+                    server(dest, my_port, source, 9999, 2, 0);
                 }
 			}
 			if (event.handle == sock)
@@ -589,10 +589,6 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, un
 
                     Packet ack_packet;
 
-
-
-
-
                     char buff[data_packet.GetPayload().GetSize()+1];
                     data_packet.GetPayload().GetData(buff, data_packet.GetPayload().GetSize(), 0);
                     buff[data_packet.GetPayload().GetSize()] = 0; // Chuck a null terminating character on the end
@@ -608,7 +604,7 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, un
 
 
                     cerr<<"The ack_num is: "<< ack_num<<endl;
-                    build_packet(ack_packet, src_ip, 9999,     dest_ip, ACK,           src_port,  ++seq_num, ack_num, 0);
+                    build_packet(ack_packet, src_ip, 9999,     dest_ip, ACK,           src_port,  seq_num, ack_num, 0);
                                 //&to_build, src_ip, src_port, dest_ip, packet_type,   dest_port, seq_num,   ack_num, data_amount)
 
                     MinetSend(mux, ack_packet);
