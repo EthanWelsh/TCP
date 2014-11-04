@@ -16,7 +16,7 @@
 //void build_packet(Packet &, ConnectionToStateMapping<TCPState> &, int , int , bool);
 void handshake(IPAddress, int, IPAddress, int, int, int, unsigned char, bool);
 void build_packet(Packet &, IPAddress, int, IPAddress, int, int, unsigned int, unsigned int, int);
-void server(IPAddress, int, IPAddress, int, int, int);
+void server(IPAddress, int, IPAddress, int, unsigned int, int);
 void client(IPAddress, int, IPAddress, int);
 
 #include <iostream>
@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
                     cerr<<"Got an ACK... Entering server loop."<<endl;
                     Packet ack_packet;
 
-                    server(dest, my_port, source, 9999, seq_num, 0);
+                    server(dest, my_port, source, 9999, 1, 0);
                 }
 			}
 			if (event.handle == sock)
@@ -489,7 +489,7 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 			new_tcph.SetSeqNum(1, to_send);
 			new_tcph.SetAckNum(seq_num+1, to_send);
 
-            bad_programming = seq_num+1;
+            bad_programming = seq_num + 1;
 
             cerr<<"Recieved a SYN as server..."<<endl;
 
@@ -507,7 +507,7 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 		else if(IS_ACK(recv_flags)) // ___ACK___
 		{
             cerr<<"I recieved an ACK in the handshake, so we're entering the server loop"<<endl;
-            server(                 src_ip,     src_port,           dest_ip,     dest_port,     3,           ack_num);
+            server(                 src_ip,     src_port,           dest_ip,     dest_port,     3,           4);
             //void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num)
 
 
@@ -547,7 +547,7 @@ void client(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port)
     MinetSend(mux, data_packet);
 }
 
-void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num)
+void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, unsigned int seq_num, int ack_num)
 { // When we get an ACK, we send it here, and this deals with it.
 
     cerr<<"I got the ACK and now the handshake is over. It's time to wait for some data to come in."<<endl;
@@ -578,17 +578,38 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, in
                     IPHeader ip_header;    // For holding the IP header
                     ip_header = data_packet.FindHeader(Headers::IPHeader);    // Get the IP header from the MUX packet
 
+
+                    unsigned int their_seq;
+
+                    tcp_header.GetSeqNum(their_seq);
+
+
                     Buffer d = data_packet.GetPayload();
                     cerr<<"Payload: "<<d<<endl;
 
                     Packet ack_packet;
 
-                    cerr<<"@~@~@   The size is "<<data_packet.GetPayload().GetSize()<<endl;
 
-                    ack_num = bad_programming + data_packet.GetPayload().GetSize();
+
+
+
+                    char buff[data_packet.GetPayload().GetSize()+1];
+                    data_packet.GetPayload().GetData(buff, data_packet.GetPayload().GetSize(), 0);
+                    buff[data_packet.GetPayload().GetSize()] = 0; // Chuck a null terminating character on the end
+                    int actualSize = strlen(buff);
+
+                    ack_num = their_seq + actualSize; // TODO GET PACKET LENGTH
+
+
+                    cerr<<"@The size is "<<actualSize<<endl;
+                    cerr<<"Sending out an ACK of "<<ack_num<<endl;
+
+
+
+
                     cerr<<"The ack_num is: "<< ack_num<<endl;
-                    build_packet(ack_packet, src_ip, 9999,     dest_ip, ACK,           src_port,  2,       ack_num, 0);
-                                //&to_build, src_ip, src_port, dest_ip, packet_type,   dest_port, seq_num, ack_num, data_amount)
+                    build_packet(ack_packet, src_ip, 9999,     dest_ip, ACK,           src_port,  ++seq_num, ack_num, 0);
+                                //&to_build, src_ip, src_port, dest_ip, packet_type,   dest_port, seq_num,   ack_num, data_amount)
 
                     MinetSend(mux, ack_packet);
 
