@@ -37,10 +37,6 @@ using namespace std;
 MinetHandle mux; // Mutex to ensure not preempted
 MinetHandle sock; // Socket
 
-
-
-
-
 int bad_programming;
 
 /*
@@ -67,15 +63,10 @@ int bad_programming;
  * - After we send the data, we should see the server (NC) ACK our packet back.
  */
 
-
 int port_num = 7878;
 
 int main(int argc, char *argv[])
 {
-
-
-
-
 	ConnectionList<TCPState> conn_list;
     // This was all included in the code
 
@@ -243,8 +234,6 @@ int main(int argc, char *argv[])
 }
 
 
-
-
 void build_packet(Packet &to_build, IPAddress src_ip, int src_port, IPAddress dest_ip, int packet_type, int dest_port, unsigned int seq_num, unsigned int ack_num, int data_amount)
 {
     unsigned char alerts = 0;
@@ -286,14 +275,14 @@ void build_packet(Packet &to_build, IPAddress src_ip, int src_port, IPAddress de
         {
             SET_ACK(alerts);
             SET_SYN(alerts);
-            cerr << "It is a HEADERTYPE_SYNACK!" << endl;
+            cerr << "It is a SYN_ACK!" << endl;
         }
             break;
         case PSHACK:
         {
             SET_PSH(alerts);
             SET_ACK(alerts);
-            cerr << "It is a HEADERTYPE_PSHACK!" << endl;
+            cerr << "It is a PSH_ACK!" << endl;
         }
             break;
         case FIN:
@@ -332,7 +321,6 @@ void build_packet(Packet &to_build, IPAddress src_ip, int src_port, IPAddress de
     to_build.PushBackHeader(new_tcpheader);
     //cerr<< "---------------Packet is built------------" << endl;
 }
-
 
 void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num, unsigned char recv_flags, bool is_client)
 {
@@ -486,10 +474,6 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 		TCPHeader new_tcph;	// Holds the TCP Header
 		unsigned char new_flags = 0;
 		// This part sets the flags
-
-
-
-
         if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
 		{
 			SET_SYN(new_flags);
@@ -518,9 +502,10 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
             cerr<<"I recieved an ACK in the handshake, so we're entering the server loop"<<endl;
             server(                 src_ip,     src_port,           dest_ip,     dest_port,     3,           4);
             //void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num)
-
-
-            cerr<<"You probably shouldn't see this message"<<endl;
+		}
+		else if(IS_FIN(recv_flags) && !IS_ACK(recv_flags))	// If it is a FIN
+		{
+			cerr<<"I received a FIN... YAY!"<<endl;
 		}
 		unsigned short theRealPort = 0;
 
@@ -542,12 +527,9 @@ void handshake(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port,
 	}
 }
 
-
 void client(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port)
 {
     cerr<<"Entered into server loop. Sending hello world!!!!"<<endl;
-
-
 
     int d_am = 0;
 
@@ -573,15 +555,7 @@ void client(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port)
         MinetSend(mux, data_packet);
         sleep(1);
     }
-
-
-
-
-
-
-
-
-
+	// Disconnect function call will be placed here.
 }
 
 void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, unsigned int seq_num, int ack_num)
@@ -633,16 +607,10 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, un
 
                     ack_num = their_seq + actualSize; // TODO GET PACKET LENGTH
 
-
                     cerr<<"@The size is "<<actualSize<<endl;
                     cerr<<"Sending out an ACK of "<<ack_num<<endl;
-
-
-
-
                     cerr<<"The ack_num is: "<< ack_num<<endl;
-                    build_packet(ack_packet, src_ip, port_num,     dest_ip, ACK,           src_port,  seq_num, ack_num, 0);
-                                //&to_build, src_ip, src_port, dest_ip, packet_type,   dest_port, seq_num,   ack_num, data_amount)
+                    build_packet(ack_packet, src_ip, port_num, dest_ip, ACK, src_port,  seq_num, ack_num, 0);
 
                     MinetSend(mux, ack_packet);
 
