@@ -38,6 +38,9 @@ MinetHandle mux; // Mutex to ensure not preempted
 MinetHandle sock; // Socket
 
 
+
+
+
 int bad_programming;
 
 /*
@@ -65,8 +68,14 @@ int bad_programming;
  */
 
 
+int port_num = 7878;
+
 int main(int argc, char *argv[])
 {
+
+
+
+
 	ConnectionList<TCPState> conn_list;
     // This was all included in the code
 
@@ -151,7 +160,7 @@ int main(int argc, char *argv[])
 				{
 
                     cerr<<"Nice to meet you..."<<endl;
-					handshake(source, 9999, dest, my_port, seq_num, ack_num, recv_flags, false);
+					handshake(source, port_num, dest, my_port, seq_num, ack_num, recv_flags, false);
                     cerr<<"NEVER"<<endl;
                     ack_num = 3;
 				}
@@ -161,7 +170,7 @@ int main(int argc, char *argv[])
                     cerr<<"Got an ACK... Entering server loop."<<endl;
                     Packet ack_packet;
 
-                    server(dest, my_port, source, 9999, 2, 0);
+                    server(dest, my_port, source, port_num, 2, 0);
                 }
 			}
 			if (event.handle == sock)
@@ -196,7 +205,7 @@ int main(int argc, char *argv[])
 							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
 							conn_list.push_back(new_CTSM);
 
-							handshake("192.168.128.1", 9999, "192.168.42.8", 9999, 0, 0, 0, true);
+							handshake("192.168.128.1", port_num, "192.168.42.8", port_num, 0, 0, 0, true);
 							for(;;);
 							
 							MinetSend(mux, recv_packet);
@@ -538,13 +547,41 @@ void client(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port)
 {
     cerr<<"Entered into server loop. Sending hello world!!!!"<<endl;
 
-    char *data = "hello world";
-    Buffer *b = new Buffer(data, 12);
-    Packet data_packet(*b);
 
-    build_packet(data_packet, src_ip, 9999,     dest_ip, 0,           src_port,  2,       0,       11);
-                 //&to_build, src_ip, src_port, dest_ip, packet_type, dest_port, seq_num, ack_num, data_amount)
-    MinetSend(mux, data_packet);
+
+    int d_am = 0;
+
+    string dayName[] = {"Sunday", "Monday", "Tuesday", "Wedensday", "Thursday", "Friday", "Saturday"};
+
+    int seq_num = 2;
+
+    for(int i = 0; i < 7; i++)
+    {
+        const char *data = dayName[i].c_str();
+
+        Buffer *b = new Buffer(data, strlen(data) + 1);
+        Packet data_packet(*b);
+
+        d_am = d_am + strlen(data);
+
+
+
+        build_packet(data_packet, src_ip, port_num,     dest_ip, 0,           src_port,  seq_num,       0,     strlen(data));
+        seq_num = seq_num + strlen(data);
+
+        //           &to_build,   src_ip, src_port,     dest_ip, packet_type, dest_port, seq_num, ack_num, data_amount)
+        MinetSend(mux, data_packet);
+        sleep(1);
+    }
+
+
+
+
+
+
+
+
+
 }
 
 void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, unsigned int seq_num, int ack_num)
@@ -604,7 +641,7 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, un
 
 
                     cerr<<"The ack_num is: "<< ack_num<<endl;
-                    build_packet(ack_packet, src_ip, 9999,     dest_ip, ACK,           src_port,  seq_num, ack_num, 0);
+                    build_packet(ack_packet, src_ip, port_num,     dest_ip, ACK,           src_port,  seq_num, ack_num, 0);
                                 //&to_build, src_ip, src_port, dest_ip, packet_type,   dest_port, seq_num,   ack_num, data_amount)
 
                     MinetSend(mux, ack_packet);
