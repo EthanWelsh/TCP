@@ -1,5 +1,4 @@
 #include <sys/time.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -8,23 +7,16 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-
+#include <iostream>
 #include "../libminet/tcpstate.h"
 #include "ip.h"
 
-
-//void build_packet(Packet &, ConnectionToStateMapping<TCPState> &, int , int , bool);
 void handshake(IPAddress, int, IPAddress, int, int, int, unsigned char, bool);
 void build_packet(Packet &, IPAddress, int, IPAddress, int, int, unsigned int, unsigned int, int);
 void server(IPAddress, int, IPAddress, int, unsigned int, int);
 void client(IPAddress, int, IPAddress, int);
 
-#include <iostream>
-
-//#include "Minet.h"
-
 using namespace std;
-
 
 #define SYN 1
 #define ACK 2
@@ -174,14 +166,6 @@ int main(int argc, char *argv[])
 			}
 			if (event.handle == sock)
 			{
-                /*
-                 * This is how the application layer talks to us. When a connection is requested, it'll
-                 * come from the sock. Once we see something coming from the sock, we will build a SYN
-                 * packet using our IPAddress and Port # as the source, and the IP and Port # specified
-                 * in the request. We'll build a SYN packet from this information, and send it out to the
-                 * server. From then on, everything will be handled in the MUX.
-                 */
-
                 cerr<<"I got a sock event."<<endl;
 
 				SockRequestResponse request;
@@ -204,6 +188,8 @@ int main(int argc, char *argv[])
 							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
 							conn_list.push_back(new_CTSM);
 
+							// Can we convert this to work with build_packet
+							// build_packet(packet_tosend, new_CTSM, SYN, 0);
 							handshake("192.168.128.1", port_num, "192.168.42.8", port_num, 0, 0, 0, true);
 							for(;;);
 							
@@ -220,6 +206,38 @@ int main(int argc, char *argv[])
 							cerr << "Done with the connection case" << endl;
                         }
 						break;
+						case ACCEPT:
+						{
+							cerr << "===============START CASE ACCEPT===============\n" << endl;
+							TCPState server(1, LISTEN, 5);
+							ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time(), server, false);
+							clist.push_back(new_CTSM);
+							response.type = STATUS;
+							response.connection = request.connection;
+							response.bytes = 0;
+							response.error = EOK;
+							MinetSend(sock, response);
+							cerr << "===============END CASE ACCEPT===============" << endl;
+						}
+						break;
+						case WRITE: 
+						{
+							response.type = STATUS;
+							response.connection = request.connection;
+							response.bytes = 0;
+							response.error = ENOMATCH;
+							MinetSend(sock, response);
+						}
+						break;
+						case CLOSE: 
+						{
+							response.type = STATUS;
+							response.connection = request.connection;
+							response.bytes = 0;
+							response.error = ENOMATCH;
+							MinetSend(sock, response);
+						}
+						break;
 						default:
 						{
 						}
@@ -229,6 +247,88 @@ int main(int argc, char *argv[])
 				else
 				{
 					cerr<< "**********Connection was found in the list**********" << endl;
+					unsigned int curr_state; // State of the tcp connection on our side.
+					curr_state = CL_iterator->state.GetState();	// Get the state
+					Buffer data_buff;	// buffer for storing data
+					switch (req.type)
+					{
+						case CONNECT:
+						{
+							cerr<< "Shouldn't see this... Sock-> Connect" << endl;
+						}
+						break;
+						case ACCEPT:
+						{ 
+							cerr<< "Shouldn't see this... Sock-> Accept" << endl;
+						}
+						break;
+						case STATUS:
+						{
+							if (my_state == ESTABLISHED)
+							{
+								unsigned data_sent = request.bytes; // number of bytes send
+								CL_iterator->state.RecvBuffer.Erase(0,data_sent);
+								if(0 != CL_iterator->state.RecvBuffer.GetSize()) 
+								{ // Didn't finish writing
+									SockRequestResponse write (WRITE, CL_iterator->connection, CL_iterator->state.RecvBuffer, CL_iterator->state.RecvBuffer.GetSize(), EOK);
+									MinetSend(sock, write);
+								}
+							}
+						}
+						break;
+						case WRITE:
+						{
+							cerr << "===============Write Case in SOCK===============\n" << endl;
+							if (curr_state == ESTABLISHED)
+							{
+								if(CL_iterator->state.SendBuffer.GetSize()+req.data.GetSize() > CL_iterator->state.TCP_BUFFER_SIZE)
+								{
+									// If there isn't enough space in the buffer
+									response.type = STATUS;
+									response.connection = request.connection;
+									response.bytes = 0;
+									response.error = EBUF_SPACE;
+									MinetSend(sock, response);
+								}
+								else
+								{
+									Buffer copy_buffer = req.data; // Dupe the buffer
+									int ret_value = 0;
+									// TODO
+									//SendData(mux, sock, *CL_iterator, copy_buffer);
+                                        
+									if (return_value == 0) 
+									{
+										response.type = STATUS;
+										response.connection = request.connection;
+										response.bytes = data_buff.GetSize();
+										response.error = EOK;
+										MinetSend(sock, response);
+									}
+								}
+							}
+							cerr << "===============Finished in SOCK- Write===============\n" << endl;
+						}
+						case CLOSE: 
+						{
+							cerr << "===============Starting to close the connection===============\n" << endl;
+							if (curr_state == ESTABLISHED)
+							{
+								CL_iterator->state.SetState(FIN_WAIT1);
+								CL_iterator->state.last_acked = CL_iterator->state.last_acked+1;
+				
+								//build_packet(packet_tosend, *CL_iterator, FINACK, 0, false);
+								MinetSend(mux, packet_tosend);
+	
+								response.type = STATUS;
+								response.connection = request.connection;
+								response.bytes = 0;
+								response.error = EOK;
+								MinetSend(sock, response);
+							}
+							cerr << "===============END CASE CLOSE===============" << endl;
+						}
+					}
 				}
 			}
 		}
