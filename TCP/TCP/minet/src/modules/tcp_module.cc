@@ -24,6 +24,10 @@ using namespace std;
 #define FIN_ACK 6
 #define RST 7
 
+
+MinetHandle mux; // Mutex to ensure not preempted
+MinetHandle sock; // Socket
+
 int main(int argc, char *argv[])
 {
     ConnectionList<TCPState> conn_list;
@@ -99,8 +103,9 @@ int main(int argc, char *argv[])
                 recv_iph.GetDestIP(conn.src);
                 recv_iph.GetSourceIP(conn.dest);
                 recv_iph.GetProtocol(conn.protocol);
-                recv_tcph.GetSourcePort(conn.destport);
                 recv_tcph.GetDestPort(conn.srcport);
+                recv_tcph.GetSourcePort(conn.destport);
+
                 cerr << "Printing the connection received:\n" << conn << endl;
 
                 recv_tcph.GetSeqNum(seq_num);
@@ -111,7 +116,7 @@ int main(int argc, char *argv[])
 
                 recv_iph.GetTotalLength(total_size);
                 recv_iph.GetHeaderLength(iph_size);
-                total_size = total_size- tcph_size- iph_size;	// Get the amount of data contained in packet
+                total_size = total_size - tcph_size - iph_size;	// Get the amount of data contained in packet
                 data_buffer = recv_packet.GetPayload().ExtractFront(total_size);	// Get the data
 
                 ConnectionList<TCPState>::iterator CL_iterator = conn_list.FindMatching(conn);
@@ -317,6 +322,9 @@ int main(int argc, char *argv[])
                             TCPState client(1, SYN_SENT, 5);
 
                             ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
+
+                            cerr<<"SYN STATE: "<<new_CTSM<<endl;
+
                             conn_list.push_back(new_CTSM);
 
                             // Can we convert this to work with build_packet
