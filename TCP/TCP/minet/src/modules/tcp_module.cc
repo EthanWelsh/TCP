@@ -865,196 +865,21 @@ void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, un
     }
 }
 
-/*
-// TODO Still need to fix the seq and ack numbers
-// TODO Still need to configure this for server
-	-- Create a function to build_fin
-	-- Create a function to build_finack
-void disconnect(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num, unsigned char recv_flags, bool is_client)
+int SendData(const MinetHandle &mux, const MinetHandle &sock, ConnectionToStateMapping<TCPState> &the_mapping, Buffer data_buffer) 
 {
-    double timeout = 1;
-    MinetEvent event;
-
-    if(is_client)
-    {
-        Packet p;
-        IPHeader iph; // Holds the IP Header
-        TCPHeader tcph; // Holds the TCP Header
-
-        unsigned char flags = 0;
-
-        iph.SetSourceIP(src_ip); // Set the source IP --- my IP Address
-        iph.SetDestIP(dest_ip);    // Set the destination IP --- NETLAB-3
-        iph.SetProtocol(IP_PROTO_TCP);    // Set protocol to TCP
-        iph.SetTotalLength(IP_HEADER_BASE_LENGTH + TCP_HEADER_BASE_LENGTH); // Total length of the packet being sent off
-        p.PushFrontHeader(iph);    // Add the IPHeader into the packet
-
-        tcph.SetSourcePort(src_port, p);
-        tcph.SetDestPort(dest_port, p);
-        tcph.SetSeqNum(1, p);
-        tcph.SetWinSize(100, p);
-        tcph.SetUrgentPtr(0, p);
-        SET_FIN(flags); // Set the flag that this is a FIN packet
-        tcph.SetFlags(flags, p); // Set the flag in the header
-        tcph.RecomputeChecksum(p);
-        tcph.SetHeaderLen(TCP_HEADER_BASE_LENGTH, p);
-        p.PushBackHeader(tcph);    // Push the header into the packet
-
-        MinetSend(mux, p); // Send the packet to mux
-        sleep(1);
-        MinetSend(mux, p);
-
-        while(1)
-        {
-			while (MinetGetNextEvent(event, timeout) == 0)
-            {
-                if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
-                {
-                    if (event.handle == mux)
-                    {
-                        Packet mux_packet; // Receipt packet
-                        MinetReceive(mux, mux_packet); // Receive packet
-
-                        unsigned short length = TCPHeader::EstimateTCPHeaderLength(mux_packet);    // Estimate length
-                        mux_packet.ExtractHeaderFromPayload<TCPHeader>(length);    // Get the Header from the packet
-
-                        TCPHeader tcp_header; // For storing the TCP header
-                        tcp_header = mux_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet
-
-                        IPHeader ip_header;    // For holding the IP header
-                        ip_header = mux_packet.FindHeader(Headers::IPHeader);    // Get the IP header from the MUX packet
-
-                        unsigned char f = 0;    // To hold the flags from the packet
-                        unsigned char cap_flags = 0;
-
-                        tcp_header.GetFlags(f); // Assign f with flags received from TCP Header
-
-                        unsigned int ack_num = 0;
-                        unsigned int seq_num = 0;
-
-                        tcp_header.GetSeqNum(seq_num);
-
-                        Packet to_send;    // Declare the response packet
-                        IPHeader iph;     // Holds the IP Header
-
-                        IPAddress temp;               // hold the IP Address for switching around
-                        ip_header.GetSourceIP(temp); // Should give us the source
-                        iph.SetDestIP(temp);        // Set the destination IP --- NETLAB-3
-                        ip_header.GetDestIP(temp); // Should give us the source
-                        iph.SetSourceIP(temp);    // Set the source IP --- my IP Address
-
-                        iph.SetProtocol(IP_PROTO_TCP);    // Set protocol to TCP
-
-                        iph.SetTotalLength(IP_HEADER_BASE_LENGTH + TCP_HEADER_BASE_LENGTH);
-                        to_send.PushFrontHeader(iph);    // Add the IPHeader into the packet
-
-                        TCPHeader new_tcphead;    // Holds the TCP Header
-
-                        if (IS_FIN(f) && !IS_ACK(f))
-                        {
-                            seq_num = seq_num + 1;
-
-                            new_tcphead.SetSeqNum(2, to_send);
-                            new_tcphead.SetAckNum(seq_num, to_send);
-
-                            SET_ACK(cap_flags);
-							SET_FIN(cap_flags);
-                            cerr << "\nFIN_ACK\n" << tcp_header << endl;
-                        }
-                        else
-                        {
-                            cerr << "This should never happen!" << endl;
-							cerr << "Encountered an error in generating a FINACK!" << endl;
-                        }
-
-                        new_tcphead.SetSourcePort(src_port, to_send);
-                        new_tcphead.SetDestPort(dest_port, to_send);
-
-                        new_tcphead.SetWinSize(100, to_send);
-                        new_tcphead.SetUrgentPtr(0, to_send);
-
-                        new_tcphead.SetFlags(cap_flags, to_send); // Set the flag in the header
-
-                        new_tcphead.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_send);
-
-                        new_tcphead.RecomputeChecksum(to_send);
-
-                        to_send.PushBackHeader(new_tcphead); // Push the header into the packet
-
-                        cerr << "I'm sending the FIN_ACK" << endl;
-                        MinetSend(mux, to_send);
-
-                        return;
-
-                    }
-                }
-            }
-        }
-    }
-	else if (!is_client)	// If operating as the server
+	cerr << "Sending Data\n" << endl;
+	Packet data_packet;
+	the_mapping.state.SendBuffer.AddBack(data_buffer);
+	unsigned int bytes_to_send= data.GetSize();
+	while(bytes_to_send!= 0)
 	{
-		// Declare and build new packet to send off
-        Packet to_send;	// Declare the response packet
-		IPHeader new_iph;	// Holds the IP Header
-		new_iph.SetDestIP(src_ip);	// Set the destination IP --- NETLAB-3
-		new_iph.SetSourceIP(dest_ip);	// Set the source IP --- my IP Address
-		new_iph.SetProtocol(IP_PROTO_TCP);	// Set protocol to TCP
-		new_iph.SetTotalLength(IP_HEADER_BASE_LENGTH + TCP_HEADER_BASE_LENGTH);
-		to_send.PushFrontHeader(new_iph);	// Add the IPHeader into the packet
-		TCPHeader new_tcph;	// Holds the TCP Header
-		unsigned char new_flags = 0;
-		// This part sets the flags
-        if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
-		{
-			SET_SYN(new_flags);
-			SET_ACK(new_flags);
-
-			new_tcph.SetSeqNum(1, to_send);
-			new_tcph.SetAckNum(seq_num+1, to_send);
-
-            bad_programming = seq_num + 1;
-
-            cerr<<"Recieved a SYN as server..."<<endl;
-
-
-		}
-		else if(IS_SYN(recv_flags) && IS_ACK(recv_flags)) // ___SYN-ACK___
-		{
-			seq_num = seq_num + 1;
-
-			new_tcph.SetSeqNum(ack_num, to_send);
-			new_tcph.SetAckNum(seq_num, to_send);
-
-			SET_ACK(new_flags);
-		}
-		else if(IS_ACK(recv_flags)) // ___ACK___
-		{
-            cerr<<"I recieved an ACK in the handshake, so we're entering the server loop"<<endl;
-            server(                 src_ip,     src_port,           dest_ip,     dest_port,     3,           4);
-            //void server(IPAddress src_ip, int src_port, IPAddress dest_ip, int dest_port, int seq_num, int ack_num)
-		}
-		else if(IS_FIN(recv_flags) && !IS_ACK(recv_flags))	// If it is a FIN
-		{
-			cerr<<"I received a FIN... YAY!"<<endl;
-			// work_finished();
-		}
-		unsigned short theRealPort = 0;
-
-		new_tcph.SetSourcePort(src_port, to_send);
-		new_tcph.SetDestPort(dest_port, to_send);
-			
-		new_tcph.SetWinSize(100, to_send);
-		new_tcph.SetUrgentPtr(0, to_send);
-
-		new_tcph.SetFlags(new_flags, to_send); // Set the flag in the header
-
-		new_tcph.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_send);
-
-		new_tcph.RecomputeChecksum(to_send);
-
-		to_send.PushBackHeader(new_tcph); // Push the header into the packet
-
-		MinetSend(mux, to_send);
+		unsigned int bytes_being_sent = min(bytes_to_send, TCP_MAXIMUM_SEGMENT_SIZE);
+		data_packet = the_mapping.state.SendBuffer.Extract(0, bytes_being_sent);
+		build_packet(data_packet, the_mapping, PSHACK, bytesToSend, false);
+		MinetSend(mux, data_packet);
+		the_mapping.state.last_sent = the_mapping.state.last_sent + bytes_being_sent;
+		bytes_to_send-= bytes_being_sent;
 	}
+	cerr << "All data has been sent!\n" << endl;
+	return bytes_to_send;
 }
-*/
