@@ -65,6 +65,9 @@ int main(int argc, char *argv[])
 
     while (MinetGetNextEvent(event, timeout) == 0)
     {
+
+        cerr<<"@"<<endl;
+
         if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
         {
             if (event.handle == mux)
@@ -99,6 +102,13 @@ int main(int argc, char *argv[])
                 recv_tcph.GetSeqNum(seq_num);
 
                 // The following are needed for identifying the connection (tuple of 5 values)
+
+                cerr<<"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@Here's the connection@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"<<endl;
+                cerr<<recv_iph<<endl;
+                cerr<<recv_tcph<<endl;
+                cerr<<"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"<<endl;
+
+
                 cerr << "Gathering the connection information from the packet" << endl;
                 recv_iph.GetDestIP(conn.src);
                 recv_iph.GetSourceIP(conn.dest);
@@ -186,8 +196,10 @@ int main(int argc, char *argv[])
                             MinetSend(mux, send_packet);
                             CL_iterator->state.SetState(ESTABLISHED);
                             CL_iterator->bTmrActive = false;
+
                             SockRequestResponse write (WRITE, CL_iterator->connection, data_buffer, 0, EOK);
                             MinetSend(sock, write);
+
                             cerr << "Finished with the SYNACK... and sent a SYN" << endl;
                         }
                         break;
@@ -306,7 +318,9 @@ int main(int argc, char *argv[])
 
                 SockRequestResponse request;
                 SockRequestResponse response;
+
                 MinetReceive(sock, request);
+
                 Packet recv_packet;
                 // Check to see if there is a matching connection in the ConnectionList
                 ConnectionList<TCPState>::iterator CL_iterator = conn_list.FindMatching(request.connection);
@@ -320,6 +334,8 @@ int main(int argc, char *argv[])
                         {
                             cerr << " Working in the connect case of sock\n" << endl;
                             TCPState client(1, SYN_SENT, 5);
+
+                            request.connection.srcport = 8005; // TODO for now we are hardcoding in a SRCPORT.
 
                             ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
 
@@ -359,6 +375,7 @@ int main(int argc, char *argv[])
                             break;
                         case WRITE:
                         {
+                            cerr<<"WRITE"<<endl;
                             response.type = STATUS;
                             response.connection = request.connection;
                             response.bytes = 0;
@@ -368,6 +385,7 @@ int main(int argc, char *argv[])
                             break;
                         case CLOSE:
                         {
+                            cerr<<"CLOSE"<<endl;
                             response.type = STATUS;
                             response.connection = request.connection;
                             response.bytes = 0;
@@ -499,8 +517,8 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &the_mapp
     new_ipheader.SetProtocol(IP_PROTO_TCP);
     to_build.PushFrontHeader(new_ipheader);
 
-    new_tcpheader.SetSourcePort(the_mapping.connection.src, to_build);
-    new_tcpheader.SetDestPort(the_mapping.connection.dest, to_build);
+    new_tcpheader.SetSourcePort(the_mapping.connection.srcport, to_build);
+    new_tcpheader.SetDestPort(the_mapping.connection.destport, to_build);
     new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_build);
 
     new_tcpheader.SetAckNum(the_mapping.state.GetLastRecvd(),to_build);
