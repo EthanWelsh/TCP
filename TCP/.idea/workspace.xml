@@ -26,8 +26,8 @@
       <file leaf-file-name="tcp_module.cc" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/TCP/minet/src/modules/tcp_module.cc">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.4764795" vertical-offset="8251" max-vertical-offset="8910">
-              <caret line="571" column="34" selection-start-line="571" selection-start-column="34" selection-end-line="571" selection-end-column="34" />
+            <state vertical-scroll-proportion="0.45371777" vertical-offset="121" max-vertical-offset="8820">
+              <caret line="28" column="18" selection-start-line="28" selection-start-column="18" selection-end-line="28" selection-end-column="18" />
               <folding />
             </state>
           </provider>
@@ -522,8 +522,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/TCP/minet/src/modules/tcp_module.cc">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.4764795" vertical-offset="8251" max-vertical-offset="8910">
-          <caret line="571" column="34" selection-start-line="571" selection-start-column="34" selection-end-line="571" selection-end-column="34" />
+        <state vertical-scroll-proportion="0.45371777" vertical-offset="121" max-vertical-offset="8820">
+          <caret line="28" column="18" selection-start-line="28" selection-start-column="18" selection-end-line="28" selection-end-column="18" />
           <folding />
         </state>
       </provider>

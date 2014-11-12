@@ -24,12 +24,6 @@ using namespace std;
 #define FIN_ACK 6
 #define RST 7
 
-MinetHandle mux; // Mutex to ensure not preempted
-MinetHandle sock; // Socket
-
-int bad_programming;
-int port_num = 7878;
-
 int main(int argc, char *argv[])
 {
     ConnectionList<TCPState> conn_list;
