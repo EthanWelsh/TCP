@@ -30,31 +30,6 @@ MinetHandle mux; // Mutex to ensure not preempted
 MinetHandle sock; // Socket
 
 int bad_programming;
-
-/*
- * MILESTONE 2
-
-
- * ************************************************SERVER***************************************************************
- * - Handshake: We'll wait for a SYN, send back a SYN ACK, then we'll get an ACK.
- * - Wait for Data: We, the server, NEVER SEND DATA. After we get the ACK, we'll wait for data packets to arrive.
- * - ACK Data: Once (and every time) a data packet arrives we'll ACK it.
- *
- * How we test it:
- * - We'll NC into our IP on the correct port number
- * - After we see the handshake go down, we can type into NC and it will send out what we type as data packets.
- * - We should see our ACKS (from the server side) coming back every time we do this.
-
- * ************************************************CLIENT***************************************************************
- * - Handshake: We send SYN, wait for a SYN ACK to come back, and then send an ACK.
- * - Send Data: Directly after we send the ACK for our handshake, we'll shoot out a data packet with something hardcoded
- * into it.
- *
- * How we test it:
- * - We'll hardcode a (single) data packet to get sent directly after the ACK that we send to complete the handshake.
- * - After we send the data, we should see the server (NC) ACK our packet back.
- */
-
 int port_num = 7878;
 
 int main(int argc, char *argv[])
@@ -98,15 +73,6 @@ int main(int argc, char *argv[])
 		{
 			if (event.handle == mux)
 			{
-                /*
-                 * This event describes anything that comes from below. Any packets that are received, be
-                 * they SYNs, ACKs, SYN ACks, or just regular data packets will be processed inside of this
-                 * event loop.
-                 *
-                 * This is also where the server will initiate its connections: it will receive a packet
-                 * from the client, and it will send a reply using its IP and Port # as the source, and the
-                 * IP and port number from the incoming packet as the destination.
-                 */
 				// ip packet has arrived!
                 cerr<<"I got a mux event."<<endl;
                 SockRequestResponse request;
@@ -114,9 +80,15 @@ int main(int argc, char *argv[])
 				
 				// Tear apart packet for data
 				Packet recv_packet; // Receipt packet
+				Buffer data_buffer;
 				
 				MinetReceive(mux, recv_packet); // Receive packet
 				
+				Connection conn;
+				Packet send_packet;
+				unsigned char tcph_size, iph_size;
+				unsigned short window, is_urgent, total_size;
+		
 	            unsigned short length = TCPHeader::EstimateTCPHeaderLength(recv_packet);	// Estimate length
 				recv_packet.ExtractHeaderFromPayload<TCPHeader>(length);	// Get the Header from the packet
 				TCPHeader recv_tcph; // For storing the TCP header
@@ -128,41 +100,207 @@ int main(int argc, char *argv[])
 				unsigned char recv_flags = 0;	// To hold the flags from the packet
 				recv_tcph.GetFlags(recv_flags); // Assign with flags received from TCP Header
 				
-
 				recv_tcph.GetSeqNum(seq_num);
 				
-				IPAddress source;
-				recv_iph.GetSourceIP(source);	// This will need to be the destination
-				IPAddress dest;
-				recv_iph.GetDestIP(dest);	// This will need to be the source
-
-                unsigned short my_port = 0;
-                recv_tcph.GetSourcePort(my_port);
-
-                if(IS_SYN(recv_flags) && !IS_ACK(recv_flags)) // ___SYN___
-				{
-
-                    cerr<<"Nice to meet you..."<<endl;
-					handshake(source, port_num, dest, my_port, seq_num, ack_num, recv_flags, false);
-                    cerr<<"NEVER"<<endl;
-                    ack_num = 3;
-				}
-                else if (IS_ACK(recv_flags))
-                { // It's a data packet
-
-                    cerr<<"Got an ACK... Entering server loop."<<endl;
-                    Packet ack_packet;
-
-                    server(dest, my_port, source, port_num, 2, 0);
-                }
-				else if (IS_FIN(recv_flags) && !IS_ACK(recv_flags)) 	// FIN
-				{
+				// The following are needed for identifying the connection (tuple of 5 values)
+				cerr << "Gathering the connection information from the packet" << endl;
+				recv_iph.GetDestIP(conn.src);
+				recv_iph.GetSourceIP(conn.dest);
+				recv_iph.GetProtocol(conn.protocol);
+				recv_tcph.GetSourcePort(conn.destport);
+				recv_tcph.GetDestPort(conn.srcport);
+				cerr << "Printing the connection received:\n" << conn << endl;
 				
-				}
-				else if (IS_FIN(recv_flags) && !IS_ACK(recv_flags)) 	// FIN
+				recv_tcph.GetSeqNum(seq_num);
+				recv_tcph.GetAckNum(ack_num);
+				recv_tcph.GetWinSize(window); 
+				recv_tcph.GetUrgentPtr(is_urgent);
+				recv_tcph.GetHeaderLen(tcph_size);
+        
+				recv_iph.GetTotalLength(total_size);
+				recv_iph.GetHeaderLength(iph_size);
+				total_size = total_size- tcph_size- iph_size;	// Get the amount of data contained in packet
+				data_buffer = recv_packet.GetPayload().ExtractFront(total_size);	// Get the data
+
+				ConnectionList<TCPState>::iterator CL_iterator = conn_list.FindMatching(conn);        
+				if (CL_iterator == conn_list.end())
 				{
-				
+					cerr << "The connection was not in the list!" << endl;
 				}
+				unsigned int curr_state; // This holds the current state of the connection
+				curr_state = CL_iterator->state.GetState();
+				cerr << " The current state: " << current_state << endl;
+				
+				switch(curr_state)
+				{
+					case LISTEN:
+						cerr << "Listening for communications" << endl;
+						if (IS_SYN(recv_flags)) 
+						{
+							cerr << "Packet received is a SYN" << endl;
+							// Update all the data in the CTSM
+							CL_iterator->connection = conn; // Set conn to connection
+							CL_iterator->state.SetState(SYN_RCVD);
+							CL_iterator->state.last_acked = CL_iterator->state.last_sent;
+							CL_iterator->state.SetLastRecvd(seq_num + 1);
+							CL_iterator->bTmrActive = true; // Timeout set
+							CL_iterator->timeout=Time() + 5; // Set to 5 seconds
+							cerr << "\nseq: " << seq_num << " and ack: " << ack_num << endl;
+							
+							// Forge the SYNACK packet
+							CL_iterator->state.last_sent = CL_iterator->state.last_sent + 1;
+							
+							// build_packet(packet_tosend, *CL_iterator, HEADERTYPE_SYNACK, 0, false);
+							MinetSend(mux, send_packet);
+							sleep(2);
+							MinetSend(mux, send_packet);
+							
+							cerr << "Finished SYN operations" << endl;
+						}
+						break;
+						case SYN_RCVD:
+							// Received a SYN packet and need to send a SYNACK
+							cerr << "Starting to build the SYNACK packet\n" << endl;
+							CL_iterator->state.SetState(ESTABLISHED);
+							cerr << "Established the connection!" << endl;
+							CL_iterator->state.SetLastAcked(ack_num);
+							CL_iterator->state.SetSendRwnd(window); 
+							CL_iterator->state.last_sent = CL_iterator->state.last_sent + 1;
+							CL_iterator->bTmrActive = false;
+							static SockRequestResponse * write = NULL;
+							write = new SockRequestResponse(WRITE, CL_iterator->connection, data_buffer, 0, EOK);
+							MinetSend(sock, *write);
+							delete write;
+							
+							cerr << "Finished building the SYNACK\n" << endl;
+                        break;
+						case SYN_SENT:
+							// We are expecting a SYNACK
+							cerr << "We should be receiving a SYNACK right in order to be here\n" << endl;
+							if (IS_SYN(flags) && IS_ACK(flags)) 
+							{
+									cerr << "It is a SYNACK... YAY!" << endl;
+									CL_iterator->state.SetSendRwnd(window);
+									CL_iterator->state.SetLastRecvd(seq_num + 1);
+									CL_iterator->state.last_acked = ack_num;
+									// Need to make an ACK packet
+									CL_iterator->state.last_sent = CL_iterator->state.last_sent + 1;
+									// build_packet (packet_tosend, *CL_iterator, ACK, 0, false);
+									MinetSend(mux, send_packet);
+									CL_iterator->state.SetState(ESTABLISHED);
+									CL_iterator->bTmrActive = false;
+									SockRequestResponse write (WRITE, CL_iterator->connection, data_buffer, 0, EOK);
+									MinetSend(sock, write);
+									cerr << "Finished with the SYNACK... and sent a SYN" << endl;
+							}
+							break;
+						case ESTABLISHED:
+                        cerr << "START CASE ESTABLISHED\n" << endl;
+                        if(IS_PSH(recv_flags) && IS_ACK(recv_flags))
+						{
+							cerr << " Start case for data packet received\n" << endl;
+							cerr << "Received \"" << data_buffer << "\", buffer size: " << data_buffer.GetSize() << "." << endl;
+							CL_iterator->state.SetSendRwnd(window);
+							CL_iterator->state.last_recvd = seq_num+ data_buffer.GetSize();
+							CL_iterator->state.last_acked = ack_num;
+							// Write to socket
+							CL_iterator->state.RecvBuffer.AddBack(data_buffer);           
+							SockRequestResponse write(WRITE, CL_iterator->connection, CL_iterator->state.RecvBuffer, CL_iterator->state.RecvBuffer.GetSize(), EOK);
+							MinetSend(sock, write);
+                                        
+							// Need to make an ACK packet
+							// build_packet (packet_tosend, *CL_iterator, HEADERTYPE_ACK, 0, false);
+							MinetSend(mux, send_packet);
+							cerr << "Finished dealing with a data packet\n" << endl;
+                        }
+                        else if(IS_FIN(recv_flags) && IS_ACK(recv_flags))
+						{
+							// This is when the client sends a FINACK
+							cerr << "Dealing with a FINACK\n" << endl;
+							CL_iterator->state.SetState(CLOSE_WAIT);
+							CL_iterator->state.SetSendRwnd(window);
+							CL_iterator->state.last_recvd = seq_num+1;
+							CL_iterator->state.last_acked = ack_num;        
+							
+							// Need to make an ACK packet
+							// build_packet(packet_tosend, *CL_iterator, HEADERTYPE_FINACK, 0, false);
+							MinetSend(mux, send_packet);
+							cerr << "Finished with the FINACK\n" << endl;
+						}
+                        // we are the client, the server is ACK'ing our packet
+                        else if(IS_ACK(flags))
+						{
+							cerr << "Got an ACK for what we just sent" << endl;
+							CL_iterator->state.SetLastRecvd((unsigned int)seq_num);
+							CL_iterator->state.last_acked = ack_num;
+                        }
+                        else 
+						{
+							cerr << "Unknown packet: " << recv_tcph << endl;
+                        }
+                        cerr << "===============END CASE ESTABLISHED===============\n" << endl;
+                        break;
+						case FIN_WAIT1:
+							if(IS_FIN(recv_flags) && IS_ACK(recv_flags))
+							{
+								cerr << "===============START CASE FIN_WAIT1 + IS_FIN + IS_ACK===============\n" << endl;
+								CL_iterator->state.SetState(FIN_WAIT2);
+								CL_iterator->state.SetSendRwnd(window);
+								CL_iterator->state.last_recvd = seq_num+1;
+								CL_iterator->state.last_acked = ack_num;
+                                        
+								// Need to make an ACK packet
+								// build_packet(packet_tosend, *CL_iterator, HEADERTYPE_ACK, 0, false);
+								MinetSend(mux, send_packet);
+								cerr << "===============END CASE FIN_WAIT1 + IS_FIN + IS_ACK===============\n" << endl;
+							}
+							break;
+						case FIN_WAIT2:
+							if(IS_ACK(recv_flags))
+							{
+								CL_iterator->state.SetSendRwnd(window);
+								CL_iterator->state.last_recvd = seq_num+1;
+								CL_iterator->state.last_acked = ack_num;
+								
+								// Need to make an ACK packet
+								// build_packet(packet_tosend, *CL_iterator, HEADERTYPE_ACK, 0, false);
+								MinetSend(mux, send_packet);
+								
+								// Finished and closing
+								SockRequestResponse finished;
+								finished.type = CLOSE;
+								finished.connection = CL_iterator->connection;
+								finished.bytes = 0;
+								finished.error = EOK;
+								MinetSend(sock, finished);
+								
+								clist.erase(CL_iterator);
+								cerr << "===============END CASE FIN_WAIT2 + IS_FIN + IS_ACK===============\n" << endl;
+							}
+							break;							
+						case TIME_WAIT:
+							break;
+						case CLOSE_WAIT:
+							if(IS_ACK(recv_flags))
+							{
+								cerr << "===============START CASE CLOSE_WAIT + IS_ACK===============\n" << endl;
+								// Finished and closing
+								SockRequestResponse finished;
+								finished.type = CLOSE;
+								finished.connection = CL_iterator->connection;
+								finished.bytes = 0;
+								finished.error = EOK;
+								MinetSend(sock, finished);
+								clist.erase(CL_iterator);
+								cerr << "Connection closed!" << endl;
+								cerr << "===============END CASE CLOSE_WAIT + IS_ACK===============\n" << endl;
+							}
+							break;
+						case LAST_ACK:
+							break;
+						return;
+				}
+				cerr << "Finished in the mux portion!" << endl;
 			}
 			if (event.handle == sock)
 			{
@@ -331,6 +469,7 @@ int main(int argc, char *argv[])
 					}
 				}
 			}
+			cerr << "Finished in the sock portion!" << endl;
 		}
 		if (event.eventtype == MinetEvent::Timeout)
 		{
@@ -341,28 +480,27 @@ int main(int argc, char *argv[])
     return 0;	// Program finished
 }
 
-
-void build_packet(Packet &to_build, IPAddress src_ip, int src_port, IPAddress dest_ip, int packet_type, int dest_port, unsigned int seq_num, unsigned int ack_num, int data_amount)
+void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &the_mapping, int TCPHeaderType, int size_of_data) 
 {
+	//cerr << "Beginning to build the packet" << endl;
     unsigned char alerts = 0;
     int packet_size = data_amount + TCP_HEADER_BASE_LENGTH + IP_HEADER_BASE_LENGTH;
 
     IPHeader new_ipheader;
     TCPHeader new_tcpheader;
 
-    new_ipheader.SetSourceIP(src_ip);
-    new_ipheader.SetDestIP(dest_ip);
+    new_ipheader.SetSourceIP(the_mapping.src);
+    new_ipheader.SetDestIP(the_mapping.dest);
     new_ipheader.SetTotalLength(packet_size);
     new_ipheader.SetProtocol(IP_PROTO_TCP);
     to_build.PushFrontHeader(new_ipheader);
-    //cerr << "\nNew ipheader: \n" << new_ipheader << endl;
 
-    new_tcpheader.SetSourcePort(src_port, to_build);
-    new_tcpheader.SetDestPort(dest_port, to_build);
+    new_tcpheader.SetSourcePort(the_mapping.src, to_build);
+    new_tcpheader.SetDestPort(the_mapping.dest, to_build);
     new_tcpheader.SetHeaderLen(TCP_HEADER_BASE_LENGTH, to_build);
 
-    new_tcpheader.SetAckNum(ack_num,to_build);
-    new_tcpheader.SetWinSize(100, to_build);
+    new_tcpheader.SetAckNum(the_mapping.state.GetLastRecvd(),to_build);
+    new_tcpheader.SetWinSize(the_mapping.state.GetRwnd(), to_build);
     new_tcpheader.SetUrgentPtr(0, to_build);
 
     switch (packet_type)
@@ -420,10 +558,9 @@ void build_packet(Packet &to_build, IPAddress src_ip, int src_port, IPAddress de
 
     // Set the flag
     new_tcpheader.SetFlags(alerts, to_build);
-
     new_tcpheader.RecomputeChecksum(to_build);
 
-    new_tcpheader.SetSeqNum(seq_num, to_build);
+    new_tcpheader.SetSeqNum(the_mapping.state.GetLastSent(), to_build);
 
     // Push the header into the packet
     to_build.PushBackHeader(new_tcpheader);
