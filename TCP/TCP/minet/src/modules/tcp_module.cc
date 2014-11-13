@@ -89,8 +89,8 @@ int main(int argc, char *argv[])
                 IPHeader recv_iph;	// For holding the IP header
                 recv_iph = recv_packet.FindHeader(Headers::IPHeader);	// Get the IP header from the MUX packet
 
-                cerr << "\nipheader: \n" << ipheader_recv << endl;
-                cerr << "\ntcpheader: \n" << tcpheader_recv << endl;
+                cerr << "\nipheader: \n" << recv_iph << endl;
+                cerr << "\ntcpheader: \n" << recv_tcph << endl;
 
                 // The following are needed for identifying the connection (tuple of 5 values)
                 cerr << "Gathering the connection information from the packet" << endl;
@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
                 {
                     case LISTEN:
                         cerr << "LISTENING in Mux...." << endl;
-                        if (IS_SYN(alerts))
+                        if (IS_SYN(recv_flags))
                         {
                             cerr << "Packet received is a SYN" << endl;
                             // Update all the data in the CTSM
@@ -573,15 +573,8 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &the_mapp
     // Set the flag
     new_tcpheader.SetFlags(alerts, to_build);
 
-    // Determine if it is a packet related to a timeout
-    if (isTimeout)
-    { // If this is a packet responding to a timeout scenario
-        new_tcpheader.SetSeqNum(the_mapping.state.GetLastSent()+1, to_build);
-    }
-    else
-    { // If this is NOT a packet responding to a timeout scenario
-        new_tcpheader.SetSeqNum(the_mapping.state.GetLastSent(), to_build);
-    }
+    new_tcpheader.SetSeqNum(the_mapping.state.GetLastSent(), to_build);
+
 
     new_tcpheader.RecomputeChecksum(to_build);
     // Push the header into the packet
