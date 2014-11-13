@@ -65,9 +65,6 @@ int main(int argc, char *argv[])
 
     while (MinetGetNextEvent(event, timeout) == 0)
     {
-
-        cerr<<"@"<<endl;
-
         if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
         {
             if (event.handle == mux)
@@ -183,7 +180,7 @@ int main(int argc, char *argv[])
                         break;
                     case SYN_SENT:
                         // We are expecting a SYNACK
-                        cerr << "We should be receiving a SYNACK right in order to be here\n" << endl;
+
                         if (IS_SYN(recv_flags) && IS_ACK(recv_flags))
                         {
                             cerr << "It is a SYNACK... YAY!" << endl;
@@ -200,7 +197,7 @@ int main(int argc, char *argv[])
                             SockRequestResponse write (WRITE, CL_iterator->connection, data_buffer, 0, EOK);
                             MinetSend(sock, write);
 
-                            cerr << "Finished with the SYNACK... and sent a SYN" << endl;
+                            cerr << "Finished with the SYNACK... and sent an ACK" << endl;
                         }
                         break;
                     case ESTABLISHED:
@@ -335,7 +332,7 @@ int main(int argc, char *argv[])
                             cerr << " Working in the connect case of sock\n" << endl;
                             TCPState client(1, SYN_SENT, 5);
 
-                            request.connection.srcport = 8005; // TODO for now we are hardcoding in a SRCPORT.
+                            request.connection.srcport = 8010; // TODO for now we are hardcoding in a SRCPORT.
 
                             ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
 
