@@ -67,6 +67,11 @@ int main(int argc, char *argv[])
     {
         if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
         {
+            /* * * * * * * * * * * * * * * * *
+             * * * * * * * * * * * * * * * * *
+             * *            MUX            * *
+             * * * * * * * * * * * * * * * * *
+             * * * * * * * * * * * * * * * * */
             if (event.handle == mux)
             {
                 // ip packet has arrived!
@@ -99,12 +104,6 @@ int main(int argc, char *argv[])
                 recv_tcph.GetSeqNum(seq_num);
 
                 // The following are needed for identifying the connection (tuple of 5 values)
-
-                cerr<<"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@Here's the connection@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"<<endl;
-                cerr<<recv_iph<<endl;
-                cerr<<recv_tcph<<endl;
-                cerr<<"@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@"<<endl;
-
 
                 cerr << "Gathering the connection information from the packet" << endl;
                 recv_iph.GetDestIP(conn.src);
@@ -148,7 +147,7 @@ int main(int argc, char *argv[])
                             CL_iterator->state.last_acked = CL_iterator->state.last_sent;
                             CL_iterator->state.SetLastRecvd(seq_num + 1);
                             CL_iterator->bTmrActive = true; // Timeout set
-                            CL_iterator->timeout=Time() + 5; // Set to 5 seconds
+                            //CL_iterator->timeout = Time() + 5; // Set to 5 seconds // TODO remove this line?
                             cerr << "\nseq: " << seq_num << " and ack: " << ack_num << endl;
 
                             // Make the SYNACK packet
@@ -156,7 +155,7 @@ int main(int argc, char *argv[])
 
                             build_packet(send_packet, *CL_iterator, SYN_ACK, 0);
                             MinetSend(mux, send_packet);
-                            sleep(2);
+                            sleep(1);
                             MinetSend(mux, send_packet);
 
                             cerr << "Finished SYN operations" << endl;
@@ -194,8 +193,14 @@ int main(int argc, char *argv[])
                             CL_iterator->state.SetState(ESTABLISHED);
                             CL_iterator->bTmrActive = false;
 
-                            SockRequestResponse write (WRITE, CL_iterator->connection, data_buffer, 0, EOK);
-                            MinetSend(sock, write);
+
+                            SockRequestResponse write; //(WRITE, CL_iterator->connection, data_buffer, 0, EOK);
+                            write.type = CLOSE;
+                            write.connection = CL_iterator->connection;
+                            write.error = EOK;
+
+                            MinetSend(sock, write); // Let the SOCK know what's up...
+
 
                             cerr << "Finished with the SYNACK... and sent an ACK" << endl;
                         }
@@ -264,6 +269,7 @@ int main(int argc, char *argv[])
                     case FIN_WAIT2:
                         if(IS_ACK(recv_flags))
                         {
+                            cerr << "===============START CASE FIN_WAIT2 + IS_ACK===============\n" << endl;
                             CL_iterator->state.SetSendRwnd(window);
                             CL_iterator->state.last_recvd = seq_num+1;
                             CL_iterator->state.last_acked = ack_num;
@@ -281,12 +287,10 @@ int main(int argc, char *argv[])
                             MinetSend(sock, finished);
 
                             conn_list.erase(CL_iterator);
-                            cerr << "===============END CASE FIN_WAIT2 + IS_FIN + IS_ACK===============\n" << endl;
+                            cerr << "===============START CASE FIN_WAIT2 + IS_ACK===============\n" << endl;
                         }
                         break;
-                    case TIME_WAIT:
-                        break;
-                    case CLOSE_WAIT:
+                    case CLOSE_WAIT: // TODO I don't think we need this?
                         if(IS_ACK(recv_flags))
                         {
                             cerr << "===============START CASE CLOSE_WAIT + IS_ACK===============\n" << endl;
@@ -305,10 +309,15 @@ int main(int argc, char *argv[])
                     case LAST_ACK:
                         cerr<<"Got LAST ACK"<<endl;
                         break;
-                        return 0;
                 }
                 cerr << "Finished in the mux portion!" << endl;
             }
+
+            /* * * * * * * * * * * * * * * * *
+             * * * * * * * * * * * * * * * * *
+             * *            SOCK           * *
+             * * * * * * * * * * * * * * * * *
+             * * * * * * * * * * * * * * * * */
             if (event.handle == sock)
             {
                 cerr<<"I got a sock event."<<endl;
@@ -317,6 +326,7 @@ int main(int argc, char *argv[])
                 SockRequestResponse response;
 
                 MinetReceive(sock, request);
+                request.connection.srcport = 8010; // TODO for now we are hardcoding in a SRCPORT.
 
                 Packet recv_packet;
                 // Check to see if there is a matching connection in the ConnectionList
@@ -331,8 +341,6 @@ int main(int argc, char *argv[])
                         {
                             cerr << " Working in the connect case of sock\n" << endl;
                             TCPState client(1, SYN_SENT, 5);
-
-                            request.connection.srcport = 8010; // TODO for now we are hardcoding in a SRCPORT.
 
                             ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time()+2, client, true);
 
