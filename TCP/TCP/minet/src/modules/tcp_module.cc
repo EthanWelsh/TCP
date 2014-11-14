@@ -202,11 +202,24 @@ int main(int argc, char *argv[])
                             cerr << " Start case for data packet received\n" << endl;
                             cerr << "Received \"" << data_buffer << "\", buffer size: " << data_buffer.GetSize() << "." << endl;
                             CL_iterator->state.SetSendRwnd(window);
-                            CL_iterator->state.last_recvd = seq_num+ data_buffer.GetSize();
+
+
+                            //CL_iterator->state.last_recvd = seq_num + data_buffer.GetSize();
+
+
+                            char buff[recv_packet.GetPayload().GetSize()+1];
+                            recv_packet.GetPayload().GetData(buff, recv_packet.GetPayload().GetSize(), 0);
+                            buff[recv_packet.GetPayload().GetSize()] = 0; // Chuck a null terminating character on the end
+                            int actualSize = strlen(buff);
+
+                            CL_iterator->state.last_recvd = seq_num + actualSize;
+
+
+
                             CL_iterator->state.last_acked = ack_num;
                             // Write to socket
                             CL_iterator->state.RecvBuffer.AddBack(data_buffer);
-                            SockRequestResponse write(WRITE, CL_iterator->connection, CL_iterator->state.RecvBuffer, CL_iterator->state.RecvBuffer.GetSize(), EOK);
+                            SockRequestResponse write(WRITE, CL_iterator->connection, CL_iterator->state.RecvBuffer, actualSize, EOK);
                             MinetSend(sock, write);
 
                             // Need to make an ACK packet
@@ -220,7 +233,7 @@ int main(int argc, char *argv[])
                             cerr << "Dealing with a FINACK\n" << endl;
                             CL_iterator->state.SetState(CLOSE_WAIT);
                             CL_iterator->state.SetSendRwnd(window);
-                            CL_iterator->state.last_recvd = seq_num+1;
+                            CL_iterator->state.last_recvd = seq_num + 1;
                             CL_iterator->state.last_acked = ack_num;
 
                             // Need to make an ACK packet
@@ -484,7 +497,7 @@ int main(int argc, char *argv[])
                             }
                             cerr << "===============Finished in SOCK- Write===============\n" << endl;
                         }
-                        break;
+                            break;
                         case CLOSE:
                         {
                             cerr << "===============Starting to close the connection===============\n" << endl;
@@ -505,6 +518,7 @@ int main(int argc, char *argv[])
                             }
                             cerr << "===============END CASE CLOSE===============" << endl;
                         }
+                            break;
                         default:
                             break;
                     }
