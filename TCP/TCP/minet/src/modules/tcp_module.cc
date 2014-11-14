@@ -245,8 +245,16 @@ int main(int argc, char *argv[])
                             cerr << "===============START CASE FIN_WAIT1 + IS_FIN + IS_ACK===============\n" << endl;
                             CL_iterator->state.SetState(FIN_WAIT2);
                             CL_iterator->state.SetSendRwnd(window);
-                            CL_iterator->state.last_recvd = seq_num+1;
+
+                            cerr<<"STATE AFTER:"<<CL_iterator->state<<endl;
+
+                            CL_iterator->state.last_recvd = seq_num + 1;
                             CL_iterator->state.last_acked = ack_num;
+                            CL_iterator->state.last_sent++; // Such hacky. Much bad.
+
+
+
+                            cerr<<"STATE AFTER:"<<CL_iterator->state<<endl;
 
                             // Need to make an ACK packet
                             build_packet(send_packet, *CL_iterator, ACK, 0);
@@ -255,11 +263,17 @@ int main(int argc, char *argv[])
                         }
                         break;
                     case FIN_WAIT2:
+
                         if(IS_ACK(recv_flags))
                         {
+                            cerr << "===============START CASE FIN_WAIT2 + IS_ACK===============\n" << endl;
                             CL_iterator->state.SetSendRwnd(window);
-                            CL_iterator->state.last_recvd = seq_num+1;
+                            CL_iterator->state.last_recvd = seq_num + 1;
                             CL_iterator->state.last_acked = ack_num;
+
+                            cerr<<"CLIST_STATE:::"<<CL_iterator->state<<endl;
+
+
 
                             // Need to make an ACK packet
                             build_packet(send_packet, *CL_iterator, ACK, 0);
@@ -274,12 +288,11 @@ int main(int argc, char *argv[])
                             MinetSend(sock, finished);
 
                             conn_list.erase(CL_iterator);
-                            cerr << "===============END CASE FIN_WAIT2 + IS_FIN + IS_ACK===============\n" << endl;
+                            cerr << "===============END CASE FIN_WAIT2 + IS_ACK===============\n" << endl;
                         }
                         break;
-                    case TIME_WAIT:
-                        break;
                     case CLOSE_WAIT:
+                        cerr<<"ENTERED CLOSE WAIT."<<endl;
                         if(IS_ACK(recv_flags))
                         {
                             cerr << "===============START CASE CLOSE_WAIT + IS_ACK===============\n" << endl;
@@ -381,7 +394,6 @@ int main(int argc, char *argv[])
                             break;
                         case CLOSE:
                         {
-                            cerr<<"CLOSE-CLOSE-CLOSE-CLOSE-CLOSE-CLOSE-CLOSE-CLOSE-CLOSE-CLOSE-CLOSE-CLOSE"<<endl;
                             response.type = STATUS;
                             response.connection = request.connection;
                             response.bytes = 0;
@@ -473,10 +485,10 @@ int main(int argc, char *argv[])
                             if (curr_state == ESTABLISHED)
                             {
                                 CL_iterator->state.SetState(FIN_WAIT1);
-                                CL_iterator->state.last_acked = CL_iterator->state.last_acked+1;
+                                CL_iterator->state.last_acked = CL_iterator->state.last_acked + 1;
 
                                 Packet send_packet;
-                                build_packet(send_packet, *CL_iterator, FIN_ACK, 0);
+                                build_packet(send_packet, *CL_iterator, FIN_ACK, 0); // WE SEND FIRST FINACK.
                                 MinetSend(mux, send_packet);
 
                                 response.type = STATUS;
