@@ -1,7 +1,5 @@
-.idea
+# Project Files
 *.idea
-/.idea
-.idea/*
 *.xml
 
 # Compiled Object files
