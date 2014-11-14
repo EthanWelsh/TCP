@@ -1,6 +1,7 @@
 # Project Files
 *.idea
 *.xml
+*.pbxproj
 
 # Compiled Object files
 *.slo
