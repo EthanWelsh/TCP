@@ -27,12 +27,11 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-    MinetHandle mux; // Mutex to ensure not preempted
-    MinetHandle sock; // Socket
+    MinetHandle mux;
+    MinetHandle sock;
     ConnectionList<TCPState> conn_list;
-    // This was all included in the code
 
-    MinetInit(MINET_TCP_MODULE); // Initialize the minet tcp module
+    MinetInit(MINET_TCP_MODULE);
 
     mux = MinetIsModuleInConfig(MINET_IP_MUX) ?
             MinetConnect(MINET_IP_MUX) :
@@ -60,19 +59,16 @@ int main(int argc, char *argv[])
     {
         if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
         {
-            /* * * * * * * * * * * *
-             * * * * * * * * * * * *
-             * *       MUX       * *
-             * * * * * * * * * * * *
-             * * * * * * * * * * * */
+            /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+             * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+             * *                                     MUX                                   * *
+             * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+             * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
             if (event.handle == mux)
-            {
-                // ip packet has arrived!
-                cerr<<"MUX"<<endl;
+            { // ip packet has arrived!
                 SockRequestResponse request;
                 SockRequestResponse response;
 
-                // Tear apart packet for data
                 Packet recv_packet; // Receipt packet
                 Buffer data_buffer;
 
@@ -86,10 +82,11 @@ int main(int argc, char *argv[])
                 unsigned char recv_flags;	// To hold the flags from the packet
 
                 recv_packet.ExtractHeaderFromPayload<TCPHeader>(TCPHeader::EstimateTCPHeaderLength(recv_packet));
-                TCPHeader recv_tcph; // For storing the TCP header
+
+                TCPHeader recv_tcph; // For storing the TCP header of the incoming packet
                 recv_tcph = recv_packet.FindHeader(Headers::TCPHeader); // Get the TCP header from the MUX packet
 
-                IPHeader recv_iph;	// For holding the IP header
+                IPHeader recv_iph;	// For holding the IP header of the incoming packet
                 recv_iph = recv_packet.FindHeader(Headers::IPHeader);	// Get the IP header from the MUX packet
 
                 cerr << "Gathering the connection information from the packet" << endl;
@@ -135,7 +132,6 @@ int main(int argc, char *argv[])
                             CL_iterator->state.SetLastRecvd(seq_num + 1);
                             CL_iterator->bTmrActive = true; // Timeout set
                             CL_iterator->timeout=Time() + 5; // Set to 5 seconds
-
 
                             // Make the SYNACK packet
                             CL_iterator->state.last_sent = CL_iterator->state.last_sent + 1;
@@ -315,12 +311,11 @@ int main(int argc, char *argv[])
                 cerr << "Finished in the mux portion!" << endl;
             }
 
-            /* * * * * * * * * * * *
-             * * * * * * * * * * * *
-             * *      SOCK       * *
-             * * * * * * * * * * * *
-             * * * * * * * * * * * */
-
+            /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+             * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+             * *                                     MUX                                   * *
+             * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+             * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
             if (event.handle == sock)
             {
                 cerr<<"I got a sock event."<<endl;
