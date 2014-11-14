@@ -159,6 +159,10 @@ int main(int argc, char *argv[])
                         cerr << "I got a SYN. Guess whats coming! 		*******************************************************************************************************************************\n" << endl;
                         CL_iterator->state.SetState(ESTABLISHED);
                         cerr << "Established the connection!" << endl;
+
+                        cerr<<"~!@~!@~!@~!@~!@~!@~!@~!@~!@~!@~!@"<<endl;
+                        cerr<<"LAST ACKED"<<ack_num<<endl;
+                        cerr<<"~!@~!@~!@~!@~!@~!@~!@~!@~!@~!@~!@"<<endl;
                         CL_iterator->state.SetLastAcked(ack_num);
                         CL_iterator->state.SetSendRwnd(window);
                         CL_iterator->state.last_sent = CL_iterator->state.last_sent + 1;
@@ -443,20 +447,44 @@ int main(int argc, char *argv[])
                                 {
                                     Buffer to_copy= request.data;
                                     int ret_value = 0;
-                                    ret_value= SendData(mux, sock, *CL_iterator, to_copy);
+
+                                    cerr<<"------------------------1"<<endl;
+
+                                    ret_value = SendData(mux, sock, *CL_iterator, to_copy);
+
+                                    cerr<<"------------------------2"<<endl;
 
                                     if (ret_value == 0)
                                     {
+                                        cerr<<"------------------------3A"<<endl;
+
                                         response.type = STATUS;
+
+                                        cerr<<"------------------------3AA"<<endl;
                                         response.connection = request.connection;
+
+
+                                        cerr<<"------------------------4A"<<endl;
                                         response.bytes = data_buff.GetSize();
+
+                                        cerr<<"------------------------5A"<<endl;
+
                                         response.error = EOK;
                                         MinetSend(sock, response);
+
+                                        cerr<<"------------------------6A"<<endl;
+
                                     }
+
+                                    cerr<<"--------------------------7"<<endl;
+
+
+
                                 }
                             }
                             cerr << "===============Finished in SOCK- Write===============\n" << endl;
                         }
+                        break;
                         case CLOSE:
                         {
                             cerr << "===============Starting to close the connection===============\n" << endl;
@@ -570,26 +598,43 @@ void build_packet(Packet &to_build, ConnectionToStateMapping<TCPState> &the_mapp
         }
     }
 
+
+    cerr<<"+++++++++++++++++++++++++++++++++++A"<<endl;
+
     // Set the flag
     new_tcpheader.SetFlags(alerts, to_build);
 
+    cerr<<"+++++++++++++++++++++++++++++++++++B"<<endl;
+
     new_tcpheader.SetSeqNum(the_mapping.state.GetLastSent(), to_build);
 
+    cerr<<"+++++++++++++++++++++++++++++++++++C"<<endl;
 
     new_tcpheader.RecomputeChecksum(to_build);
+
+    cerr<<"+++++++++++++++++++++++++++++++++++D"<<endl;
     // Push the header into the packet
     to_build.PushBackHeader(new_tcpheader);
-    //cerr<< "---------------Packet is built------------" << endl;
+
+    cerr<<"+++++++++++++++++++++++++++++++++++E"<<endl;
+
+
+
+    cerr<< "---------------Packet is built------------" << endl;
 }
 
 int SendData(const MinetHandle &mux, const MinetHandle &sock, ConnectionToStateMapping<TCPState> &the_mapping, Buffer data_buffer)
 {
     cerr << "Sending Data\n" << endl;
     Packet data_packet;
+
+    cerr<<"Zebra..."<<endl;
+
     the_mapping.state.SendBuffer.AddBack(data_buffer);
     unsigned int bytes_to_send = data_buffer.GetSize();
     while(bytes_to_send!= 0)
     {
+        cerr<<"Tuna..."<<endl;
         unsigned int bytes_being_sent = min(bytes_to_send, TCP_MAXIMUM_SEGMENT_SIZE);
         data_packet = the_mapping.state.SendBuffer.Extract(0, bytes_being_sent);
         build_packet(data_packet, the_mapping, PSHACK, bytes_being_sent); // TODO we the last argument could be wrong...
