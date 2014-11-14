@@ -200,12 +200,8 @@ int main(int argc, char *argv[])
                         if(IS_PSH(recv_flags) && IS_ACK(recv_flags))
                         {
                             cerr << " Start case for data packet received\n" << endl;
-                            cerr << "Received \"" << data_buffer << "\", buffer size: " << data_buffer.GetSize() << "." << endl;
+
                             CL_iterator->state.SetSendRwnd(window);
-
-
-                            //CL_iterator->state.last_recvd = seq_num + data_buffer.GetSize();
-
 
                             char buff[recv_packet.GetPayload().GetSize()+1];
                             recv_packet.GetPayload().GetData(buff, recv_packet.GetPayload().GetSize(), 0);
@@ -213,8 +209,6 @@ int main(int argc, char *argv[])
                             int actualSize = strlen(buff);
 
                             CL_iterator->state.last_recvd = seq_num + actualSize;
-
-
 
                             CL_iterator->state.last_acked = ack_num;
                             // Write to socket
