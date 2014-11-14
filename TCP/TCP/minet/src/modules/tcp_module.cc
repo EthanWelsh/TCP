@@ -62,6 +62,11 @@ int main(int argc, char *argv[])
     {
         if ((event.eventtype == MinetEvent::Dataflow) && (event.direction == MinetEvent::IN))
         {
+            /* * * * * * * * * * * *
+             * * * * * * * * * * * *
+             * *       MUX       * *
+             * * * * * * * * * * * *
+             * * * * * * * * * * * */
             if (event.handle == mux)
             {
                 // ip packet has arrived!
@@ -160,9 +165,6 @@ int main(int argc, char *argv[])
                         CL_iterator->state.SetState(ESTABLISHED);
                         cerr << "Established the connection!" << endl;
 
-                        cerr<<"~!@~!@~!@~!@~!@~!@~!@~!@~!@~!@~!@"<<endl;
-                        cerr<<"LAST ACKED"<<ack_num<<endl;
-                        cerr<<"~!@~!@~!@~!@~!@~!@~!@~!@~!@~!@~!@"<<endl;
                         CL_iterator->state.SetLastAcked(ack_num);
                         CL_iterator->state.SetSendRwnd(window);
                         CL_iterator->state.last_sent = CL_iterator->state.last_sent + 1;
@@ -310,6 +312,13 @@ int main(int argc, char *argv[])
                 }
                 cerr << "Finished in the mux portion!" << endl;
             }
+
+            /* * * * * * * * * * * *
+             * * * * * * * * * * * *
+             * *      SOCK       * *
+             * * * * * * * * * * * *
+             * * * * * * * * * * * */
+
             if (event.handle == sock)
             {
                 cerr<<"I got a sock event."<<endl;
