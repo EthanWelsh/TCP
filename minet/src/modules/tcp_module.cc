@@ -335,8 +335,8 @@ int main(int argc, char *argv[])
                 // Check to see if there is a matching connection in the ConnectionList
 
 
-                cerr<<"Incoming Connection Request: "<<request.connection<<endl;
-                cerr<<"Connection List: "<<conn_list<<endl;
+                //cerr<<"Incoming Connection Request: "<<request.connection<<endl;
+                //cerr<<"Connection List: "<<conn_list<<endl;
 
 
                 ConnectionList<TCPState>::iterator CL_iterator = conn_list.FindMatching(request.connection);
