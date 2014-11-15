@@ -127,7 +127,12 @@ int main(int argc, char *argv[])
                 ConnectionList<TCPState>::iterator CL_iterator = conn_list.FindMatching(conn);	// Iterate through to see if the connection is in the list
                 if (CL_iterator == conn_list.end())	// If the search makes it to the end of the list
                 {
-                    cerr << "The connection was not in the list!" << endl;
+                    cerr << "MUX: The connection was NOT in the list!" << endl;
+                    cerr<< "Adding to list."<<endl;
+
+                    TCPState server(1, LISTEN, 5);	// Create a server state
+                    ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time(), server, false);	// Create a mapping entry
+                    conn_list.push_back(new_CTSM);	// Add the entry to the mapping
                 }
                 unsigned int curr_state; // This holds the current state of the connection
                 curr_state = CL_iterator->state.GetState();	// get the state of the connection
@@ -326,11 +331,18 @@ int main(int argc, char *argv[])
                 SockRequestResponse request, response;
                 MinetReceive(sock, request);
                 Packet recv_packet;	// For the packet that was received
+
                 // Check to see if there is a matching connection in the ConnectionList
+
+
+                cerr<<"Incoming Connection Request: "<<request.connection<<endl;
+                cerr<<"Connection List: "<<conn_list<<endl;
+
+
                 ConnectionList<TCPState>::iterator CL_iterator = conn_list.FindMatching(request.connection);
                 if (CL_iterator == conn_list.end())	// If the iterator makes it to the end of the list
                 {
-                    cerr<< "**********Connection was not found in the list**********" << endl;
+                    cerr<< "**********Connection was NOT found in the list**********" << endl;
                     switch (request.type)	// Based on the request type
                     {
                         case CONNECT:	// If the case is a connection
