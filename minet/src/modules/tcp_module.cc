@@ -127,13 +127,21 @@ int main(int argc, char *argv[])
                 ConnectionList<TCPState>::iterator CL_iterator = conn_list.FindMatching(conn);	// Iterate through to see if the connection is in the list
                 if (CL_iterator == conn_list.end())	// If the search makes it to the end of the list
                 {
+
                     cerr << "MUX: The connection was NOT in the list!" << endl;
                     cerr<< "Adding to list."<<endl;
 
                     TCPState server(1, LISTEN, 5);	// Create a server state
                     ConnectionToStateMapping<TCPState> new_CTSM(request.connection, Time(), server, false);	// Create a mapping entry
                     conn_list.push_back(new_CTSM);	// Add the entry to the mapping
+
+                    response.type = STATUS;
+                    response.connection = request.connection;
+                    response.bytes = 0;
+                    response.error = EOK;
+                    MinetSend(sock, response);
                 }
+
                 unsigned int curr_state; // This holds the current state of the connection
                 curr_state = CL_iterator->state.GetState();	// get the state of the connection
                 switch(curr_state)
@@ -157,6 +165,9 @@ int main(int argc, char *argv[])
                             MinetSend(mux, send_packet);	// Send the packet to the mux
                             sleep(2);	// Wait a couple of seconds
                             MinetSend(mux, send_packet);	// Resend because minet is a work in progress
+
+
+
                             cerr << "Finished SYN operations" << endl;
                         }
                         cerr << "Finished LISTENING..." << endl;
@@ -334,11 +345,6 @@ int main(int argc, char *argv[])
 
                 // Check to see if there is a matching connection in the ConnectionList
 
-
-                //cerr<<"Incoming Connection Request: "<<request.connection<<endl;
-                //cerr<<"Connection List: "<<conn_list<<endl;
-
-
                 ConnectionList<TCPState>::iterator CL_iterator = conn_list.FindMatching(request.connection);
                 if (CL_iterator == conn_list.end())	// If the iterator makes it to the end of the list
                 {
@@ -442,6 +448,9 @@ int main(int argc, char *argv[])
                             break;
                         case STATUS:
                         {
+
+                            cerr<<"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxIM HERExxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"<<endl;
+
                             if (curr_state == ESTABLISHED)	// If the connection is established
                             {
                                 unsigned data_sent = request.bytes; // number of bytes to send
