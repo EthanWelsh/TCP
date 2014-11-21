@@ -6,10 +6,10 @@ CS1652 Fall 2014
 Due: 16 NOV 2014  
   
 ---  
-Notes on the Project:  
-1. The files included in the zip:  
-  * tcp_module.cc  
-  * README.txt  
+1. Notes on the Project:  
+  * The files included in the zip:  
+    * tcp_module.cc  
+    * README.txt  
 (2 total files)  
   
 2. The Make file used was not modified in order to write this and for it to work.  
