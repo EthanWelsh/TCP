@@ -1,5 +1,5 @@
-Joshua Miner (jmm299)
 Ethan Welsh (ejw45)
+Joshua Miner (jmm299)
 
 Project 2- tcp_module.cc
 CS1652 Fall 2014
