@@ -1,8 +1,0 @@
-lowlevel-objs :=	device_driver.o \
-			reader.o \
-			writer.o
-
-#			device_driver2.o \
-
-#	bridge.o \
-
